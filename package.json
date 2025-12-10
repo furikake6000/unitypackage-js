@@ -30,7 +30,8 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx}\""
   },
   "dependencies": {
@@ -38,11 +39,15 @@
     "nanotar": "^0.2.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.0.0",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0",
+    "typescript-eslint": "^8.49.0",
     "vitest": "^1.0.0"
   }
 }
