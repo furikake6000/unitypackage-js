@@ -38,7 +38,8 @@
     "test:watch": "vitest",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
+    "format:write": "prettier --write \"src/**/*.{ts,tsx}\"",
     "prepare": "husky"
   },
   "dependencies": {
