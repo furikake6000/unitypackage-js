@@ -1,0 +1,48 @@
+{
+  "name": "unitypackage-js",
+  "version": "1.0.0",
+  "description": "A library for handling UnityPackages on client sides",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/furikake6000/unitypackage-js.git"
+  },
+  "license": "",
+  "author": "",
+  "keywords": [
+    "unity",
+    "unitypackage"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\""
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "nanotar": "^0.2.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.0.0",
+    "prettier": "^3.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}
