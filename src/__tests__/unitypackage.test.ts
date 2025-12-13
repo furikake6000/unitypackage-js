@@ -192,6 +192,15 @@ describe('exportUnityPackage', () => {
 
       // FNAMEフラグが立っているか確認
       expect(view[3] & 0x08).toBe(0x08);
+
+      // FNAMEフィールドの値を確認 (gzipヘッダーの10バイト目から開始)
+      const fnameStart = 10;
+      let fnameEnd = fnameStart;
+      while (view[fnameEnd] !== 0) {
+        fnameEnd++;
+      }
+      const fname = new TextDecoder().decode(view.slice(fnameStart, fnameEnd));
+      expect(fname).toBe('archtemp.tar');
     });
   });
 
