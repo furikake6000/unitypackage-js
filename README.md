@@ -14,13 +14,24 @@ Unity PackageはUnityエディタで使用されるアセットパッケージ�
 
 ## インストール
 
-// TBD
+```bash
+npm install unitypackage-js
+```
 
 ## 基本的な使い方
 
 ### 1. UnityPackageの読み込み
 
-// TBD
+```typescript
+import { importUnityPackage } from 'unitypackage-js';
+
+// File等のArrayBufferを取得
+const file: File = ...;
+const buffer = await file.arrayBuffer();
+
+// パッケージを解析
+const packageInfo = await importUnityPackage(buffer);
+```
 
 ### 2. アセット情報の取得
 
@@ -42,8 +53,71 @@ Unity PackageはUnityエディタで使用されるアセットパッケージ�
 
 ### 4. UnityPackageの再構築と出力
 
-// TBD
+```typescript
+import { exportUnityPackage } from 'unitypackage-js';
 
-## API リファレンス
+// 変更後のpackageInfoから.unitypackage（tar.gz）データを生成
+const newPackageData = await exportUnityPackage(packageInfo);
 
-// TBD
+// ブラウザでダウンロードさせる場合などの処理
+const blob = new Blob([newPackageData], { type: 'application/gzip' });
+// ...
+```
+
+## 型定義
+
+### `UnityPackageInfo`
+
+```typescript
+interface UnityPackageInfo {
+  assets: Map<string, UnityAsset>; // パスからアセットへのマップ
+  guidToPath: Map<string, string>; // GUIDからパスへのマップ
+  pathToGuid: Map<string, string>; // パスからGUIDへのマップ
+}
+```
+
+### `UnityAsset`
+
+```typescript
+interface UnityAsset {
+  guid: string; // アセットのGUID
+  assetPath: string; // プロジェクト内パス (例: Assets/Image.png)
+  assetData: Uint8Array; // アセット本体のバイナリデータ
+  metaData?: Uint8Array; // metaファイルのバイナリデータ
+  previewData?: Uint8Array; // プレビュー画像のバイナリデータ (存在する場合)
+}
+```
+
+## APIリファレンス
+
+| Function             | Signature                                                 | Description                                                                         |
+| :------------------- | :-------------------------------------------------------- | :---------------------------------------------------------------------------------- |
+| `importUnityPackage` | `(data: ArrayBuffer) => Promise<UnityPackageInfo>`        | .unitypackageファイル（tar.gz）のバイナリデータを解析し、アセット情報を返します。   |
+| `exportUnityPackage` | `(packageInfo: UnityPackageInfo) => Promise<ArrayBuffer>` | アセット情報から.unitypackageファイル（tar.gz）のバイナリデータを生成して返します。 |
+
+## サンプル
+
+### React Demo
+
+`examples/react-demo` ディレクトリに、Reactを使用した簡易なサンプルアプリケーションが含まれています。
+UnityPackageファイルの読み込み、アセット一覧の表示、および再生成などの機能をブラウザ上で試すことができます。
+
+```bash
+# サンプルの実行方法
+npm install
+npm run example:react
+
+> unitypackage-js@1.0.0 example:react
+> cd examples/react-demo && npm run dev
+
+> react-demo@0.0.0 dev
+> vite
+
+  VITE v7.2.7  ready in 257 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+
+# ブラウザで表示(デフォルトはhttp://localhost:5173)
+```
