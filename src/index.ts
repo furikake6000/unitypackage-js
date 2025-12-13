@@ -1,7 +1,2 @@
 // UnityPackageのimport/export
-export {
-  importUnityPackage,
-  exportUnityPackage,
-  type UnityAsset,
-  type UnityPackageInfo,
-} from './unitypackage';
+export { UnityPackage, type UnityAsset } from './unitypackage';

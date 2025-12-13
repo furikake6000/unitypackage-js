@@ -14,11 +14,7 @@ import {
   ScrollArea,
   Badge,
 } from '@mantine/core';
-import {
-  importUnityPackage,
-  exportUnityPackage,
-  type UnityPackageInfo,
-} from 'unitypackage-js';
+import { UnityPackage } from 'unitypackage-js';
 
 // Helper to download ArrayBuffer
 const downloadBlob = (data: ArrayBuffer, filename: string) => {
@@ -45,7 +41,7 @@ const formatBytes = (bytes: number, decimals = 2) => {
 
 function App() {
   const [file, setFile] = useState<File | null>(null);
-  const [packageInfo, setPackageInfo] = useState<UnityPackageInfo | null>(null);
+  const [unityPackage, setUnityPackage] = useState<UnityPackage | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
@@ -53,12 +49,12 @@ function App() {
     if (!file) return;
     setFile(file);
     setLoading(true);
-    setPackageInfo(null);
+    setUnityPackage(null);
     setSelectedPath(null);
     try {
       const buffer = await file.arrayBuffer();
-      const info = await importUnityPackage(buffer);
-      setPackageInfo(info);
+      const pkg = await UnityPackage.fromArrayBuffer(buffer);
+      setUnityPackage(pkg);
     } catch (error) {
       console.error(error);
       alert('Failed to parse unitypackage');
@@ -68,11 +64,11 @@ function App() {
   };
 
   const handleRepackageDownload = async () => {
-    if (!packageInfo) return;
+    if (!unityPackage) return;
     setLoading(true);
     try {
-      // Re-export the current packageInfo
-      const buffer = await exportUnityPackage(packageInfo);
+      // Re-export the current unityPackage
+      const buffer = await unityPackage.export();
       downloadBlob(buffer, file ? file.name : 'repackaged.unitypackage');
     } catch (error) {
       console.error(error);
@@ -83,9 +79,9 @@ function App() {
   };
 
   const selectedAsset = useMemo(() => {
-    if (!packageInfo || !selectedPath) return null;
-    return packageInfo.assets.get(selectedPath);
-  }, [packageInfo, selectedPath]);
+    if (!unityPackage || !selectedPath) return null;
+    return unityPackage.assets.get(selectedPath);
+  }, [unityPackage, selectedPath]);
 
   return (
     <Container size="xl" py="xl">
@@ -107,7 +103,7 @@ function App() {
             </FileButton>
             <Button
               onClick={handleRepackageDownload}
-              disabled={!packageInfo}
+              disabled={!unityPackage}
               loading={loading}
               variant="outline"
               size="lg"
@@ -118,17 +114,17 @@ function App() {
         </Paper>
 
         {/* Basic Info Area */}
-        {packageInfo && (
+        {unityPackage && (
           <Paper withBorder p="md" bg="gray.0">
             <Group>
               <Text fw={700}>Loaded Package:</Text>
               <Text>{file?.name}</Text>
-              <Badge color="blue">{packageInfo.assets.size} Assets</Badge>
+              <Badge color="blue">{unityPackage.assets.size} Assets</Badge>
             </Group>
           </Paper>
         )}
 
-        {packageInfo && (
+        {unityPackage && (
           <Grid>
             {/* Asset List Area */}
             <Grid.Col span={{ base: 12, md: 6 }}>
@@ -161,47 +157,45 @@ function App() {
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
-                      {Array.from(packageInfo.guidToPath.values()).map(
-                        (path) => {
-                          const asset = packageInfo.assets.get(path);
-                          const fileName = path.split('/').pop() || path;
-                          const size = asset?.assetData?.byteLength || 0;
-                          const isSelected = path === selectedPath;
+                      {Array.from(unityPackage.assets.keys()).map((path) => {
+                        const asset = unityPackage.assets.get(path);
+                        const fileName = path.split('/').pop() || path;
+                        const size = asset?.assetData?.byteLength || 0;
+                        const isSelected = path === selectedPath;
 
-                          return (
-                            <Table.Tr
-                              key={path}
-                              onClick={() => setSelectedPath(path)}
+                        return (
+                          <Table.Tr
+                            key={path}
+                            onClick={() => setSelectedPath(path)}
+                            style={{
+                              cursor: 'pointer',
+                              backgroundColor: isSelected
+                                ? 'var(--mantine-color-blue-1)'
+                                : undefined,
+                            }}
+                          >
+                            <Table.Td
                               style={{
-                                cursor: 'pointer',
-                                backgroundColor: isSelected
-                                  ? 'var(--mantine-color-blue-1)'
-                                  : undefined,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '300px',
                               }}
+                              title={path}
                             >
-                              <Table.Td
-                                style={{
-                                  whiteSpace: 'nowrap',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  maxWidth: '300px',
-                                }}
-                                title={path}
-                              >
-                                <Text size="sm" fw={isSelected ? 700 : 400}>
-                                  {fileName}
-                                </Text>
-                                <Text size="xs" c="dimmed" truncate>
-                                  {path}
-                                </Text>
-                              </Table.Td>
-                              <Table.Td width={100}>
-                                <Text size="xs">{formatBytes(size)}</Text>
-                              </Table.Td>
-                            </Table.Tr>
-                          );
-                        },
-                      )}
+                              <Text size="sm" fw={isSelected ? 700 : 400}>
+                                {fileName}
+                              </Text>
+                              <Text size="xs" c="dimmed" truncate>
+                                {path}
+                              </Text>
+                            </Table.Td>
+                            <Table.Td width={100}>
+                              <Text size="xs">{formatBytes(size)}</Text>
+                            </Table.Td>
+                          </Table.Tr>
+                        );
+                      })}
                     </Table.Tbody>
                   </Table>
                 </ScrollArea>

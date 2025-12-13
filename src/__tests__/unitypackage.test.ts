@@ -1,12 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import {
-  importUnityPackage,
-  exportUnityPackage,
-  UnityAsset,
-  UnityPackageInfo,
-} from '../unitypackage';
+import { UnityPackage, UnityAsset } from '../unitypackage';
 
 // フィクスチャファイルのパス
 const FIXTURES_DIR = join(__dirname, 'fixtures');
@@ -32,17 +27,15 @@ beforeAll(async () => {
   );
 });
 
-describe('importUnityPackage', () => {
+describe('UnityPackage.fromArrayBuffer', () => {
   describe('基本的な機能', () => {
     it('最小構成のUnityPackageを正しくインポートできる', async () => {
-      const result = await importUnityPackage(minimalPackageData);
+      const pkg = await UnityPackage.fromArrayBuffer(minimalPackageData);
 
-      expect(result.assets.size).toBeGreaterThan(0);
-      expect(result.guidToPath.size).toBe(result.assets.size);
-      expect(result.pathToGuid.size).toBe(result.assets.size);
+      expect(pkg.assets.size).toBeGreaterThan(0);
 
       // 少なくとも1つのアセットが存在する
-      const firstAsset = Array.from(result.assets.values())[0];
+      const firstAsset = Array.from(pkg.assets.values())[0];
       expect(firstAsset).toBeDefined();
       expect(firstAsset.guid).toBeTruthy();
       expect(firstAsset.assetPath).toBeTruthy();
@@ -50,13 +43,13 @@ describe('importUnityPackage', () => {
     });
 
     it('標準構成のUnityPackageを正しくインポートできる', async () => {
-      const result = await importUnityPackage(standardPackageData);
+      const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
 
       // 複数のアセットが含まれている
-      expect(result.assets.size).toBeGreaterThan(1);
+      expect(pkg.assets.size).toBeGreaterThan(1);
 
       // すべてのアセットが必須フィールドを持っている
-      for (const asset of result.assets.values()) {
+      for (const asset of pkg.assets.values()) {
         expect(asset.guid).toBeTruthy();
         expect(asset.assetPath).toBeTruthy();
         expect(asset.assetData).toBeInstanceOf(Uint8Array);
@@ -65,41 +58,23 @@ describe('importUnityPackage', () => {
     });
 
     it('アセットパスからアセットを取得できる', async () => {
-      const result = await importUnityPackage(standardPackageData);
+      const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
 
       // いずれかのアセットパスでアクセス
-      const assetPath = Array.from(result.assets.keys())[0];
-      const asset = result.assets.get(assetPath);
+      const assetPath = Array.from(pkg.assets.keys())[0];
+      const asset = pkg.assets.get(assetPath);
 
       expect(asset).toBeDefined();
       expect(asset!.assetPath).toBe(assetPath);
-    });
-
-    it('GUIDからパスへのマッピングが正しい', async () => {
-      const result = await importUnityPackage(standardPackageData);
-
-      for (const [assetPath, asset] of result.assets.entries()) {
-        const mappedPath = result.guidToPath.get(asset.guid);
-        expect(mappedPath).toBe(assetPath);
-      }
-    });
-
-    it('パスからGUIDへのマッピングが正しい', async () => {
-      const result = await importUnityPackage(standardPackageData);
-
-      for (const [assetPath, asset] of result.assets.entries()) {
-        const mappedGuid = result.pathToGuid.get(assetPath);
-        expect(mappedGuid).toBe(asset.guid);
-      }
     });
   });
 
   describe('アセットの種類', () => {
     it('メタデータ付きアセットを正しく処理できる', async () => {
-      const result = await importUnityPackage(standardPackageData);
+      const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
 
       // メタデータを持つアセットが存在するはず
-      const assetsWithMeta = Array.from(result.assets.values()).filter(
+      const assetsWithMeta = Array.from(pkg.assets.values()).filter(
         (asset) => asset.metaData !== undefined,
       );
 
@@ -112,10 +87,10 @@ describe('importUnityPackage', () => {
     });
 
     it('プレビュー画像付きアセットを正しく処理できる', async () => {
-      const result = await importUnityPackage(standardPackageData);
+      const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
 
       // プレビュー画像を持つアセットを探す
-      const assetsWithPreview = Array.from(result.assets.values()).filter(
+      const assetsWithPreview = Array.from(pkg.assets.values()).filter(
         (asset) => asset.previewData !== undefined,
       );
 
@@ -129,10 +104,10 @@ describe('importUnityPackage', () => {
     });
 
     it('テキストファイルとバイナリファイルの両方を処理できる', async () => {
-      const result = await importUnityPackage(standardPackageData);
+      const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
 
       // 異なるサイズのアセットが存在することを確認
-      const assetSizes = Array.from(result.assets.values()).map(
+      const assetSizes = Array.from(pkg.assets.values()).map(
         (asset) => asset.assetData.length,
       );
       const uniqueSizes = new Set(assetSizes);
@@ -147,41 +122,45 @@ describe('importUnityPackage', () => {
       const view = new Uint8Array(invalidData);
       view.fill(0xff); // 無効なデータで埋める
 
-      await expect(importUnityPackage(invalidData)).rejects.toThrow();
+      await expect(
+        UnityPackage.fromArrayBuffer(invalidData),
+      ).rejects.toThrow();
     });
 
     it('空のデータに対してエラーをスローする', async () => {
       const emptyData = new ArrayBuffer(0);
 
-      await expect(importUnityPackage(emptyData)).rejects.toThrow();
+      await expect(
+        UnityPackage.fromArrayBuffer(emptyData),
+      ).rejects.toThrow();
     });
   });
 });
 
-describe('exportUnityPackage', () => {
+describe('UnityPackage.export', () => {
   describe('基本的な機能', () => {
-    it('UnityPackageInfo からパッケージをエクスポートできる', async () => {
+    it('UnityPackage からパッケージをエクスポートできる', async () => {
       // まずインポート
-      const imported = await importUnityPackage(minimalPackageData);
+      const pkg = await UnityPackage.fromArrayBuffer(minimalPackageData);
 
       // エクスポート
-      const exported = await exportUnityPackage(imported);
+      const exported = await pkg.export();
 
       expect(exported).toBeInstanceOf(ArrayBuffer);
       expect(exported.byteLength).toBeGreaterThan(0);
     });
 
     it('複数アセットを含むパッケージをエクスポートできる', async () => {
-      const imported = await importUnityPackage(standardPackageData);
-      const exported = await exportUnityPackage(imported);
+      const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
+      const exported = await pkg.export();
 
       expect(exported).toBeInstanceOf(ArrayBuffer);
       expect(exported.byteLength).toBeGreaterThan(0);
     });
 
     it('エクスポートされたパッケージにgzip NAMEメタデータが含まれる', async () => {
-      const imported = await importUnityPackage(minimalPackageData);
-      const exported = await exportUnityPackage(imported);
+      const pkg = await UnityPackage.fromArrayBuffer(minimalPackageData);
+      const exported = await pkg.export();
 
       // gzipヘッダーを確認
       const view = new Uint8Array(exported);
@@ -206,44 +185,23 @@ describe('exportUnityPackage', () => {
 
   describe('データの整合性', () => {
     it('すべてのアセットがエクスポートされる', async () => {
-      const imported = await importUnityPackage(standardPackageData);
-      const exported = await exportUnityPackage(imported);
+      const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
+      const exported = await pkg.export();
 
       // 再度インポートして比較
-      const reimported = await importUnityPackage(exported);
+      const reimported = await UnityPackage.fromArrayBuffer(exported);
 
-      expect(reimported.assets.size).toBe(imported.assets.size);
-    });
-
-    it('GUIDマッピングが保持される', async () => {
-      const imported = await importUnityPackage(standardPackageData);
-      const exported = await exportUnityPackage(imported);
-      const reimported = await importUnityPackage(exported);
-
-      // すべてのGUIDが一致
-      for (const [guid, path] of imported.guidToPath.entries()) {
-        expect(reimported.guidToPath.get(guid)).toBe(path);
-      }
-    });
-
-    it('パスマッピングが保持される', async () => {
-      const imported = await importUnityPackage(standardPackageData);
-      const exported = await exportUnityPackage(imported);
-      const reimported = await importUnityPackage(exported);
-
-      // すべてのパスが一致
-      for (const [path, guid] of imported.pathToGuid.entries()) {
-        expect(reimported.pathToGuid.get(path)).toBe(guid);
-      }
+      expect(reimported.assets.size).toBe(pkg.assets.size);
     });
   });
 });
 
 describe('ラウンドトリップテスト', () => {
   it('最小構成: import → export → import でデータが保持される', async () => {
-    const original = await importUnityPackage(minimalPackageData);
-    const exported = await exportUnityPackage(original);
-    const reimported = await importUnityPackage(exported);
+    const original =
+      await UnityPackage.fromArrayBuffer(minimalPackageData);
+    const exported = await original.export();
+    const reimported = await UnityPackage.fromArrayBuffer(exported);
 
     // アセット数が同じ
     expect(reimported.assets.size).toBe(original.assets.size);
@@ -262,15 +220,18 @@ describe('ラウンドトリップテスト', () => {
       }
 
       if (originalAsset.previewData) {
-        expect(reimportedAsset!.previewData).toEqual(originalAsset.previewData);
+        expect(reimportedAsset!.previewData).toEqual(
+          originalAsset.previewData,
+        );
       }
     }
   });
 
   it('標準構成: import → export → import でデータが保持される', async () => {
-    const original = await importUnityPackage(standardPackageData);
-    const exported = await exportUnityPackage(original);
-    const reimported = await importUnityPackage(exported);
+    const original =
+      await UnityPackage.fromArrayBuffer(standardPackageData);
+    const exported = await original.export();
+    const reimported = await UnityPackage.fromArrayBuffer(exported);
 
     // アセット数が同じ
     expect(reimported.assets.size).toBe(original.assets.size);
@@ -289,15 +250,18 @@ describe('ラウンドトリップテスト', () => {
       }
 
       if (originalAsset.previewData) {
-        expect(reimportedAsset!.previewData).toEqual(originalAsset.previewData);
+        expect(reimportedAsset!.previewData).toEqual(
+          originalAsset.previewData,
+        );
       }
     }
   });
 
   it('バイナリデータが正確に保持される', async () => {
-    const original = await importUnityPackage(standardPackageData);
-    const exported = await exportUnityPackage(original);
-    const reimported = await importUnityPackage(exported);
+    const original =
+      await UnityPackage.fromArrayBuffer(standardPackageData);
+    const exported = await original.export();
+    const reimported = await UnityPackage.fromArrayBuffer(exported);
 
     // すべてのアセットのバイト単位での一致を確認
     for (const [path, originalAsset] of original.assets.entries()) {
@@ -310,22 +274,26 @@ describe('ラウンドトリップテスト', () => {
         originalAsset.assetData.length,
       );
       for (let i = 0; i < originalAsset.assetData.length; i++) {
-        expect(reimportedAsset!.assetData[i]).toBe(originalAsset.assetData[i]);
+        expect(reimportedAsset!.assetData[i]).toBe(
+          originalAsset.assetData[i],
+        );
       }
     }
   });
 
   it('複数回のラウンドトリップでデータが保持される', async () => {
-    let current = await importUnityPackage(minimalPackageData);
+    let current =
+      await UnityPackage.fromArrayBuffer(minimalPackageData);
 
     // 3回のラウンドトリップ
     for (let i = 0; i < 3; i++) {
-      const exported = await exportUnityPackage(current);
-      current = await importUnityPackage(exported);
+      const exported = await current.export();
+      current = await UnityPackage.fromArrayBuffer(exported);
     }
 
     // 元のデータと比較
-    const original = await importUnityPackage(minimalPackageData);
+    const original =
+      await UnityPackage.fromArrayBuffer(minimalPackageData);
     expect(current.assets.size).toBe(original.assets.size);
 
     for (const [path, originalAsset] of original.assets.entries()) {
@@ -338,54 +306,38 @@ describe('ラウンドトリップテスト', () => {
 
 describe('データ整合性', () => {
   it('GUIDが一意である', async () => {
-    const result = await importUnityPackage(standardPackageData);
+    const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
 
-    const guids = Array.from(result.assets.values()).map((asset) => asset.guid);
+    const guids = Array.from(pkg.assets.values()).map((asset) => asset.guid);
     const uniqueGuids = new Set(guids);
 
     expect(uniqueGuids.size).toBe(guids.length);
   });
 
   it('アセットパスが一意である', async () => {
-    const result = await importUnityPackage(standardPackageData);
+    const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
 
-    const paths = Array.from(result.assets.keys());
+    const paths = Array.from(pkg.assets.keys());
     const uniquePaths = new Set(paths);
 
     expect(uniquePaths.size).toBe(paths.length);
   });
 
   it('マッピングの一貫性が保たれている', async () => {
-    const result = await importUnityPackage(standardPackageData);
+    const pkg =
+      await UnityPackage.fromArrayBuffer(standardPackageData);
 
-    for (const [assetPath, asset] of result.assets.entries()) {
-      // assets, guidToPath, pathToGuid の整合性
-      expect(result.guidToPath.get(asset.guid)).toBe(assetPath);
-      expect(result.pathToGuid.get(assetPath)).toBe(asset.guid);
+    for (const [assetPath, asset] of pkg.assets.entries()) {
+      // assets の整合性
       expect(asset.assetPath).toBe(assetPath);
-    }
-  });
-
-  it('すべてのGUIDがマッピングに存在する', async () => {
-    const result = await importUnityPackage(standardPackageData);
-
-    for (const asset of result.assets.values()) {
-      expect(result.guidToPath.has(asset.guid)).toBe(true);
-    }
-  });
-
-  it('すべてのパスがマッピングに存在する', async () => {
-    const result = await importUnityPackage(standardPackageData);
-
-    for (const path of result.assets.keys()) {
-      expect(result.pathToGuid.has(path)).toBe(true);
     }
   });
 });
 
 describe('実際のUnityPackageとの互換性', () => {
   it('標準構成のパッケージに期待されるアセットが含まれている', async () => {
-    const result = await importUnityPackage(standardPackageData);
+    const pkg =
+      await UnityPackage.fromArrayBuffer(standardPackageData);
 
     // READMEによれば以下のファイルが含まれているはず
     const expectedFiles = [
@@ -400,7 +352,7 @@ describe('実際のUnityPackageとの互換性', () => {
 
     for (const fileName of expectedFiles) {
       // ファイル名が含まれるパスがあるか確認
-      const found = Array.from(result.assets.keys()).some((path) =>
+      const found = Array.from(pkg.assets.keys()).some((path) =>
         path.includes(fileName),
       );
       expect(found).toBe(true);
@@ -408,10 +360,11 @@ describe('実際のUnityPackageとの互換性', () => {
   });
 
   it('C#スクリプトファイルが正しく読み込まれる', async () => {
-    const result = await importUnityPackage(standardPackageData);
+    const pkg =
+      await UnityPackage.fromArrayBuffer(standardPackageData);
 
     // .csファイルを探す
-    const csAssets = Array.from(result.assets.values()).filter((asset) =>
+    const csAssets = Array.from(pkg.assets.values()).filter((asset) =>
       asset.assetPath.endsWith('.cs'),
     );
 
@@ -425,10 +378,11 @@ describe('実際のUnityPackageとの互換性', () => {
   });
 
   it('アニメーションファイルが正しく読み込まれる', async () => {
-    const result = await importUnityPackage(standardPackageData);
+    const pkg =
+      await UnityPackage.fromArrayBuffer(standardPackageData);
 
     // .animファイルを探す
-    const animAssets = Array.from(result.assets.values()).filter((asset) =>
+    const animAssets = Array.from(pkg.assets.values()).filter((asset) =>
       asset.assetPath.endsWith('.anim'),
     );
 
@@ -440,10 +394,11 @@ describe('実際のUnityPackageとの互換性', () => {
   });
 
   it('画像ファイルが正しく読み込まれる', async () => {
-    const result = await importUnityPackage(standardPackageData);
+    const pkg =
+      await UnityPackage.fromArrayBuffer(standardPackageData);
 
     // .pngファイルを探す
-    const pngAssets = Array.from(result.assets.values()).filter((asset) =>
+    const pngAssets = Array.from(pkg.assets.values()).filter((asset) =>
       asset.assetPath.endsWith('.png'),
     );
 
