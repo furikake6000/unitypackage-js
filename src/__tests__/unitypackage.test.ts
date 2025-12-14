@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import { UnityPackage, UnityAsset } from '../unitypackage';
+import { UnityPackage } from '../unitypackage';
 
 // フィクスチャファイルのパス
 const FIXTURES_DIR = join(__dirname, 'fixtures');
@@ -122,17 +122,13 @@ describe('UnityPackage.fromArrayBuffer', () => {
       const view = new Uint8Array(invalidData);
       view.fill(0xff); // 無効なデータで埋める
 
-      await expect(
-        UnityPackage.fromArrayBuffer(invalidData),
-      ).rejects.toThrow();
+      await expect(UnityPackage.fromArrayBuffer(invalidData)).rejects.toThrow();
     });
 
     it('空のデータに対してエラーをスローする', async () => {
       const emptyData = new ArrayBuffer(0);
 
-      await expect(
-        UnityPackage.fromArrayBuffer(emptyData),
-      ).rejects.toThrow();
+      await expect(UnityPackage.fromArrayBuffer(emptyData)).rejects.toThrow();
     });
   });
 });
@@ -198,8 +194,7 @@ describe('UnityPackage.export', () => {
 
 describe('ラウンドトリップテスト', () => {
   it('最小構成: import → export → import でデータが保持される', async () => {
-    const original =
-      await UnityPackage.fromArrayBuffer(minimalPackageData);
+    const original = await UnityPackage.fromArrayBuffer(minimalPackageData);
     const exported = await original.export();
     const reimported = await UnityPackage.fromArrayBuffer(exported);
 
@@ -220,16 +215,13 @@ describe('ラウンドトリップテスト', () => {
       }
 
       if (originalAsset.previewData) {
-        expect(reimportedAsset!.previewData).toEqual(
-          originalAsset.previewData,
-        );
+        expect(reimportedAsset!.previewData).toEqual(originalAsset.previewData);
       }
     }
   });
 
   it('標準構成: import → export → import でデータが保持される', async () => {
-    const original =
-      await UnityPackage.fromArrayBuffer(standardPackageData);
+    const original = await UnityPackage.fromArrayBuffer(standardPackageData);
     const exported = await original.export();
     const reimported = await UnityPackage.fromArrayBuffer(exported);
 
@@ -250,16 +242,13 @@ describe('ラウンドトリップテスト', () => {
       }
 
       if (originalAsset.previewData) {
-        expect(reimportedAsset!.previewData).toEqual(
-          originalAsset.previewData,
-        );
+        expect(reimportedAsset!.previewData).toEqual(originalAsset.previewData);
       }
     }
   });
 
   it('バイナリデータが正確に保持される', async () => {
-    const original =
-      await UnityPackage.fromArrayBuffer(standardPackageData);
+    const original = await UnityPackage.fromArrayBuffer(standardPackageData);
     const exported = await original.export();
     const reimported = await UnityPackage.fromArrayBuffer(exported);
 
@@ -274,16 +263,13 @@ describe('ラウンドトリップテスト', () => {
         originalAsset.assetData.length,
       );
       for (let i = 0; i < originalAsset.assetData.length; i++) {
-        expect(reimportedAsset!.assetData[i]).toBe(
-          originalAsset.assetData[i],
-        );
+        expect(reimportedAsset!.assetData[i]).toBe(originalAsset.assetData[i]);
       }
     }
   });
 
   it('複数回のラウンドトリップでデータが保持される', async () => {
-    let current =
-      await UnityPackage.fromArrayBuffer(minimalPackageData);
+    let current = await UnityPackage.fromArrayBuffer(minimalPackageData);
 
     // 3回のラウンドトリップ
     for (let i = 0; i < 3; i++) {
@@ -292,8 +278,7 @@ describe('ラウンドトリップテスト', () => {
     }
 
     // 元のデータと比較
-    const original =
-      await UnityPackage.fromArrayBuffer(minimalPackageData);
+    const original = await UnityPackage.fromArrayBuffer(minimalPackageData);
     expect(current.assets.size).toBe(original.assets.size);
 
     for (const [path, originalAsset] of original.assets.entries()) {
@@ -324,8 +309,7 @@ describe('データ整合性', () => {
   });
 
   it('マッピングの一貫性が保たれている', async () => {
-    const pkg =
-      await UnityPackage.fromArrayBuffer(standardPackageData);
+    const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
 
     for (const [assetPath, asset] of pkg.assets.entries()) {
       // assets の整合性
@@ -336,8 +320,7 @@ describe('データ整合性', () => {
 
 describe('実際のUnityPackageとの互換性', () => {
   it('標準構成のパッケージに期待されるアセットが含まれている', async () => {
-    const pkg =
-      await UnityPackage.fromArrayBuffer(standardPackageData);
+    const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
 
     // READMEによれば以下のファイルが含まれているはず
     const expectedFiles = [
@@ -360,8 +343,7 @@ describe('実際のUnityPackageとの互換性', () => {
   });
 
   it('C#スクリプトファイルが正しく読み込まれる', async () => {
-    const pkg =
-      await UnityPackage.fromArrayBuffer(standardPackageData);
+    const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
 
     // .csファイルを探す
     const csAssets = Array.from(pkg.assets.values()).filter((asset) =>
@@ -378,8 +360,7 @@ describe('実際のUnityPackageとの互換性', () => {
   });
 
   it('アニメーションファイルが正しく読み込まれる', async () => {
-    const pkg =
-      await UnityPackage.fromArrayBuffer(standardPackageData);
+    const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
 
     // .animファイルを探す
     const animAssets = Array.from(pkg.assets.values()).filter((asset) =>
@@ -394,8 +375,7 @@ describe('実際のUnityPackageとの互換性', () => {
   });
 
   it('画像ファイルが正しく読み込まれる', async () => {
-    const pkg =
-      await UnityPackage.fromArrayBuffer(standardPackageData);
+    const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
 
     // .pngファイルを探す
     const pngAssets = Array.from(pkg.assets.values()).filter((asset) =>

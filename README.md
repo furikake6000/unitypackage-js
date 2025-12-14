@@ -115,11 +115,11 @@ interface UnityAsset {
 
 ### `UnityPackage`クラス
 
-| メソッド/プロパティ          | 型                                                | 説明                                                                            |
-| :--------------------------- | :------------------------------------------------ | :------------------------------------------------------------------------------ |
-| `UnityPackage.fromArrayBuffer` (static) | `(data: ArrayBuffer) => Promise<UnityPackage>`    | .unitypackageファイル（tar.gz）のバイナリデータを解析し、UnityPackageインスタンスを返します。 |
-| `export`                     | `() => Promise<ArrayBuffer>`                       | UnityPackageインスタンスから.unitypackageファイル（tar.gz）のバイナリデータを生成して返します。 |
-| `assets`                     | `ReadonlyMap<string, UnityAsset>`                  | パスをキーとしたアセット情報のマップ（読み取り専用）を取得します。                |
+| メソッド/プロパティ                     | 型                                             | 説明                                                                                            |
+| :-------------------------------------- | :--------------------------------------------- | :---------------------------------------------------------------------------------------------- |
+| `UnityPackage.fromArrayBuffer` (static) | `(data: ArrayBuffer) => Promise<UnityPackage>` | .unitypackageファイル（tar.gz）のバイナリデータを解析し、UnityPackageインスタンスを返します。   |
+| `export`                                | `() => Promise<ArrayBuffer>`                   | UnityPackageインスタンスから.unitypackageファイル（tar.gz）のバイナリデータを生成して返します。 |
+| `assets`                                | `ReadonlyMap<string, UnityAsset>`              | パスをキーとしたアセット情報のマップ（読み取り専用）を取得します。                              |
 
 ## サンプル
 
