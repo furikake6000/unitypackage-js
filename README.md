@@ -23,19 +23,33 @@ npm install unitypackage-js
 ### 1. UnityPackageの読み込み
 
 ```typescript
-import { importUnityPackage } from 'unitypackage-js';
+import { UnityPackage } from 'unitypackage-js';
 
 // File等のArrayBufferを取得
 const file: File = ...;
 const buffer = await file.arrayBuffer();
 
 // パッケージを解析
-const packageInfo = await importUnityPackage(buffer);
+const unityPackage = await UnityPackage.fromArrayBuffer(buffer);
 ```
 
 ### 2. アセット情報の取得
 
-// TBD
+```typescript
+// すべてのアセットを取得（ReadonlyMapとして公開）
+const assets = unityPackage.assets;
+
+// 特定のパスのアセットを取得
+const asset = unityPackage.assets.get('Assets/Image.png');
+
+// アセット数を取得
+console.log(`Total assets: ${assets.size}`);
+
+// すべてのアセットを列挙
+for (const [path, asset] of assets) {
+  console.log(`Path: ${path}, GUID: ${asset.guid}`);
+}
+```
 
 ### 3. アセットの変更
 
@@ -54,10 +68,8 @@ const packageInfo = await importUnityPackage(buffer);
 ### 4. UnityPackageの再構築と出力
 
 ```typescript
-import { exportUnityPackage } from 'unitypackage-js';
-
-// 変更後のpackageInfoから.unitypackage（tar.gz）データを生成
-const newPackageData = await exportUnityPackage(packageInfo);
+// UnityPackageインスタンスから.unitypackage（tar.gz）データを生成
+const newPackageData = await unityPackage.export();
 
 // ブラウザでダウンロードさせる場合などの処理
 const blob = new Blob([newPackageData], { type: 'application/gzip' });
@@ -66,13 +78,24 @@ const blob = new Blob([newPackageData], { type: 'application/gzip' });
 
 ## 型定義
 
-### `UnityPackageInfo`
+### `UnityPackage`
 
 ```typescript
-interface UnityPackageInfo {
-  assets: Map<string, UnityAsset>; // パスからアセットへのマップ
-  guidToPath: Map<string, string>; // GUIDからパスへのマップ
-  pathToGuid: Map<string, string>; // パスからGUIDへのマップ
+class UnityPackage {
+  /**
+   * ArrayBufferからUnityPackageをインポートする
+   */
+  static async fromArrayBuffer(data: ArrayBuffer): Promise<UnityPackage>;
+
+  /**
+   * UnityPackageをエクスポートする
+   */
+  async export(): Promise<ArrayBuffer>;
+
+  /**
+   * アセット情報のマップを取得する（読み取り専用）
+   */
+  get assets(): ReadonlyMap<string, UnityAsset>;
 }
 ```
 
@@ -90,10 +113,13 @@ interface UnityAsset {
 
 ## APIリファレンス
 
-| Function             | Signature                                                 | Description                                                                         |
-| :------------------- | :-------------------------------------------------------- | :---------------------------------------------------------------------------------- |
-| `importUnityPackage` | `(data: ArrayBuffer) => Promise<UnityPackageInfo>`        | .unitypackageファイル（tar.gz）のバイナリデータを解析し、アセット情報を返します。   |
-| `exportUnityPackage` | `(packageInfo: UnityPackageInfo) => Promise<ArrayBuffer>` | アセット情報から.unitypackageファイル（tar.gz）のバイナリデータを生成して返します。 |
+### `UnityPackage`クラス
+
+| メソッド/プロパティ          | 型                                                | 説明                                                                            |
+| :--------------------------- | :------------------------------------------------ | :------------------------------------------------------------------------------ |
+| `UnityPackage.fromArrayBuffer` (static) | `(data: ArrayBuffer) => Promise<UnityPackage>`    | .unitypackageファイル（tar.gz）のバイナリデータを解析し、UnityPackageインスタンスを返します。 |
+| `export`                     | `() => Promise<ArrayBuffer>`                       | UnityPackageインスタンスから.unitypackageファイル（tar.gz）のバイナリデータを生成して返します。 |
+| `assets`                     | `ReadonlyMap<string, UnityAsset>`                  | パスをキーとしたアセット情報のマップ（読み取り専用）を取得します。                |
 
 ## サンプル
 
