@@ -10,3 +10,17 @@ export function uint8ArrayToString(bytes: Uint8Array): string {
   const decoder = new TextDecoder('utf-8');
   return decoder.decode(bytes);
 }
+
+/**
+ * 新しいGUIDを生成する
+ * @returns 新しい32文字のGUID
+ */
+export function generateNewGuid(): string {
+  // Unity GUIDは32文字の16進数文字列（小文字）
+  const chars = '0123456789abcdef';
+  let result = '';
+  for (let i = 0; i < 32; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
