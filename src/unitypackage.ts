@@ -172,4 +172,30 @@ export class UnityPackage {
   get assets(): ReadonlyMap<string, UnityAsset> {
     return this._assets;
   }
+
+  /**
+   * UnityPackage内のアセットパスを変更する
+   * @param oldAssetPath 変更前のアセットパス
+   * @param newAssetPath 変更後のアセットパス
+   * @returns 変更が成功したかどうか
+   */
+  renameAsset(oldAssetPath: string, newAssetPath: string): boolean {
+    // アセットが存在するかチェック
+    const asset = this._assets.get(oldAssetPath);
+    if (!asset) {
+      return false;
+    }
+
+    // 1. パッケージ情報を更新
+    this._assets.delete(oldAssetPath);
+    asset.assetPath = newAssetPath;
+    this._assets.set(newAssetPath, asset);
+
+    // 2. パス⇔GUID マッピングを更新
+    this._pathToGuid.delete(oldAssetPath);
+    this._pathToGuid.set(newAssetPath, asset.guid);
+    this._guidToPath.set(asset.guid, newAssetPath);
+
+    return true;
+  }
 }
