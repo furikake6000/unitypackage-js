@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Container,
   Title,
@@ -13,6 +13,7 @@ import {
   Grid,
   ScrollArea,
   Badge,
+  TextInput,
 } from '@mantine/core';
 import { UnityPackage } from 'unitypackage-js';
 
@@ -44,6 +45,72 @@ function App() {
   const [unityPackage, setUnityPackage] = useState<UnityPackage | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [editingPath, setEditingPath] = useState('');
+  const [editingGuid, setEditingGuid] = useState('');
+  const [version, setVersion] = useState(0);
+
+  const selectedAsset = useMemo(() => {
+    if (!unityPackage || !selectedPath) return null;
+    return unityPackage.assets.get(selectedPath);
+  }, [unityPackage, selectedPath, version]);
+
+  // Sync editing state when selection changes
+  useEffect(() => {
+    if (selectedAsset) {
+      setEditingPath(selectedAsset.assetPath);
+      setEditingGuid(selectedAsset.guid);
+    }
+  }, [selectedAsset]);
+
+  const handleRename = () => {
+    if (!unityPackage || !selectedPath) return;
+    try {
+      if (selectedPath === editingPath) return;
+
+      const success = unityPackage.renameAsset(selectedPath, editingPath);
+      if (success) {
+        setSelectedPath(editingPath);
+        setVersion((v) => v + 1);
+      } else {
+        alert('Rename failed: Asset not found or new path invalid');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Rename failed: ' + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+
+  const handleUpdateGuid = () => {
+    if (!unityPackage || !selectedPath) return;
+    try {
+      const success = unityPackage.replaceAssetGuid(selectedPath, editingGuid);
+      if (success) {
+        setVersion((v) => v + 1);
+      } else {
+        alert('GUID update failed');
+      }
+    } catch (e) {
+      console.error(e);
+      alert(
+        'GUID update failed: ' + (e instanceof Error ? e.message : String(e)),
+      );
+    }
+  };
+
+  const handleAutoGuid = () => {
+    if (!unityPackage || !selectedPath) return;
+    try {
+      const success = unityPackage.replaceAssetGuid(selectedPath);
+      if (success) {
+        setVersion((v) => v + 1);
+      }
+    } catch (e) {
+      console.error(e);
+      alert(
+        'GUID update failed: ' + (e instanceof Error ? e.message : String(e)),
+      );
+    }
+  };
 
   const handleImport = async (file: File | null) => {
     if (!file) return;
@@ -77,11 +144,6 @@ function App() {
       setLoading(false);
     }
   };
-
-  const selectedAsset = useMemo(() => {
-    if (!unityPackage || !selectedPath) return null;
-    return unityPackage.assets.get(selectedPath);
-  }, [unityPackage, selectedPath]);
 
   return (
     <Container size="xl" py="xl">
@@ -213,7 +275,21 @@ function App() {
                       <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
                         Path
                       </Text>
-                      <Code block>{selectedAsset.assetPath}</Code>
+                      <Group align="flex-end">
+                        <TextInput
+                          value={editingPath}
+                          onChange={(e) =>
+                            setEditingPath(e.currentTarget.value)
+                          }
+                          style={{ flex: 1 }}
+                        />
+                        <Button
+                          onClick={handleRename}
+                          disabled={selectedAsset.assetPath === editingPath}
+                        >
+                          Rename
+                        </Button>
+                      </Group>
                     </Stack>
 
                     <Group grow>
@@ -239,7 +315,24 @@ function App() {
                       <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
                         GUID
                       </Text>
-                      <Code>{selectedAsset.guid}</Code>
+                      <Group align="flex-end">
+                        <TextInput
+                          value={editingGuid}
+                          onChange={(e) =>
+                            setEditingGuid(e.currentTarget.value)
+                          }
+                          style={{ flex: 1 }}
+                        />
+                        <Button
+                          onClick={handleUpdateGuid}
+                          disabled={selectedAsset.guid === editingGuid}
+                        >
+                          Update
+                        </Button>
+                        <Button variant="light" onClick={handleAutoGuid}>
+                          Auto
+                        </Button>
+                      </Group>
                     </Stack>
 
                     {selectedAsset.metaData && (
