@@ -65,6 +65,61 @@ for (const [path, asset] of assets) {
 
 // TBD
 
+#### アセットパスのリネーム
+
+```typescript
+// アセットのパスを変更（GUIDは保持される）
+const success = unityPackage.renameAsset(
+  'Assets/OldPath/Image.png',
+  'Assets/NewPath/Image.png',
+);
+
+if (success) {
+  console.log('リネーム成功');
+} else {
+  console.log('指定されたアセットが見つかりません');
+}
+```
+
+#### アセットGUIDの変更
+
+```typescript
+// アセットのGUIDを変更し、すべての参照を自動更新
+const assetPath = 'Assets/Image.png';
+
+// GUIDを自動生成して変更
+const success = unityPackage.replaceAssetGuid(assetPath);
+
+// または、特定のGUIDを指定して変更
+const newGuid = 'a1b2c3d4e5f6789012345678abcdef00';
+const success2 = unityPackage.replaceAssetGuid(assetPath, newGuid);
+
+if (success) {
+  console.log('GUID変更成功');
+  // 他のアセット内の参照も自動的に更新されます
+} else {
+  console.log('指定されたアセットが見つかりません');
+}
+```
+
+#### リネームとGUID変更の組み合わせ
+
+```typescript
+// アセットパスとGUIDの両方を変更
+const oldPath = 'Assets/OldPath/Asset.prefab';
+const newPath = 'Assets/NewPath/Asset.prefab';
+const newGuid = '12345678901234567890123456789012';
+
+// まずパスを変更
+unityPackage.renameAsset(oldPath, newPath);
+
+// 次にGUIDを変更
+unityPackage.replaceAssetGuid(newPath, newGuid);
+
+// パッケージをエクスポート
+const newPackageData = await unityPackage.export();
+```
+
 ### 4. UnityPackageの再構築と出力
 
 ```typescript
@@ -115,11 +170,13 @@ interface UnityAsset {
 
 ### `UnityPackage`クラス
 
-| メソッド/プロパティ                     | 型                                             | 説明                                                                                            |
-| :-------------------------------------- | :--------------------------------------------- | :---------------------------------------------------------------------------------------------- |
-| `UnityPackage.fromArrayBuffer` (static) | `(data: ArrayBuffer) => Promise<UnityPackage>` | .unitypackageファイル（tar.gz）のバイナリデータを解析し、UnityPackageインスタンスを返します。   |
-| `export`                                | `() => Promise<ArrayBuffer>`                   | UnityPackageインスタンスから.unitypackageファイル（tar.gz）のバイナリデータを生成して返します。 |
-| `assets`                                | `ReadonlyMap<string, UnityAsset>`              | パスをキーとしたアセット情報のマップ（読み取り専用）を取得します。                              |
+| メソッド/プロパティ                     | 型                                                 | 説明                                                                                                                                     |
+| :-------------------------------------- | :------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
+| `UnityPackage.fromArrayBuffer` (static) | `(data: ArrayBuffer) => Promise<UnityPackage>`     | .unitypackageファイル（tar.gz）のバイナリデータを解析し、UnityPackageインスタンスを返します。                                            |
+| `export`                                | `() => Promise<ArrayBuffer>`                       | UnityPackageインスタンスから.unitypackageファイル（tar.gz）のバイナリデータを生成して返します。                                          |
+| `assets`                                | `ReadonlyMap<string, UnityAsset>`                  | パスをキーとしたアセット情報のマップ（読み取り専用）を取得します。                                                                       |
+| `renameAsset`                           | `(oldPath: string, newPath: string) => boolean`    | アセットのパスを変更します。GUIDは保持されます。成功時はtrue、失敗時はfalseを返します。                                                  |
+| `replaceAssetGuid`                      | `(assetPath: string, newGuid?: string) => boolean` | アセットのGUIDを変更し、パッケージ内のすべての参照を更新します。newGuid省略時は自動生成されます。成功時はtrue、失敗時はfalseを返します。 |
 
 ## サンプル
 

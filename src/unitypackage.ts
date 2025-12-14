@@ -1,4 +1,4 @@
-import { uint8ArrayToString } from './utils/files';
+import { generateNewGuid, uint8ArrayToString } from './utils/files';
 import {
   addOriginalNameToGzip,
   compressTarGz,
@@ -171,5 +171,125 @@ export class UnityPackage {
    */
   get assets(): ReadonlyMap<string, UnityAsset> {
     return this._assets;
+  }
+
+  /**
+   * UnityPackage内のアセットパスを変更する
+   * @param oldAssetPath 変更前のアセットパス
+   * @param newAssetPath 変更後のアセットパス
+   * @returns 変更が成功したかどうか
+   */
+  renameAsset(oldAssetPath: string, newAssetPath: string): boolean {
+    // アセットが存在するかチェック
+    const asset = this._assets.get(oldAssetPath);
+    if (!asset) {
+      return false;
+    }
+
+    // 1. パッケージ情報を更新
+    this._assets.delete(oldAssetPath);
+    asset.assetPath = newAssetPath;
+    this._assets.set(newAssetPath, asset);
+
+    // 2. パス⇔GUID マッピングを更新
+    this._pathToGuid.delete(oldAssetPath);
+    this._pathToGuid.set(newAssetPath, asset.guid);
+    this._guidToPath.set(asset.guid, newAssetPath);
+
+    return true;
+  }
+
+  /**
+   * アセットのGUIDを変更し、すべての参照を更新する
+   * @param assetPath 変更対象のアセットパス
+   * @param newGuid 新しいGUID（省略時は自動生成）
+   * @returns 変更が成功したかどうか
+   */
+  replaceAssetGuid(assetPath: string, newGuid?: string): boolean {
+    // アセットが存在するかチェック
+    const asset = this._assets.get(assetPath);
+    if (!asset) {
+      return false;
+    }
+
+    const oldGuid = asset.guid;
+    const targetGuid = newGuid || generateNewGuid();
+
+    // 新しいGUIDが既に使用されていないかチェック
+    if (this._guidToPath.has(targetGuid)) {
+      throw new Error(`GUID '${targetGuid}' は既に使用されています`);
+    }
+
+    // 1. 対象アセットのGUIDを更新
+    asset.guid = targetGuid;
+
+    // 2. マッピングを更新
+    this._guidToPath.delete(oldGuid);
+    this._pathToGuid.set(assetPath, targetGuid);
+    this._guidToPath.set(targetGuid, assetPath);
+
+    // 3. メタデータ内のGUIDを更新
+    if (asset.metaData) {
+      const metaContent = uint8ArrayToString(asset.metaData);
+      const updatedMetaContent = metaContent.replace(
+        new RegExp(`^guid: ${oldGuid}$`, 'm'),
+        `guid: ${targetGuid}`,
+      );
+      asset.metaData = new TextEncoder().encode(updatedMetaContent);
+    }
+
+    // 4. すべてのアセットでGUID参照を置換
+    this.replaceGuidReferences(oldGuid, targetGuid);
+
+    return true;
+  }
+
+  /**
+   * パッケージ内のすべてのアセットで指定されたGUID参照を置換する
+   * @param oldGuid 変更前のGUID
+   * @param newGuid 変更後のGUID
+   */
+  private replaceGuidReferences(oldGuid: string, newGuid: string): void {
+    // 前後に16進数文字がない場合のみ置換（部分的な一致を避ける）
+    const guidPattern = new RegExp(
+      `(?<![a-fA-F0-9])${oldGuid}(?![a-fA-F0-9])`,
+      'g',
+    );
+
+    // すべてのアセットを検査して参照を置換
+    for (const asset of Array.from(this._assets.values())) {
+      // アセットデータ内の参照を置換
+      try {
+        const assetContent = uint8ArrayToString(asset.assetData);
+
+        if (guidPattern.test(assetContent)) {
+          guidPattern.lastIndex = 0; // グローバル検索のリセット
+          const updatedContent = assetContent.replace(guidPattern, newGuid);
+          asset.assetData = new TextEncoder().encode(updatedContent);
+        }
+      } catch {
+        // バイナリファイルの場合はスキップ
+        continue;
+      }
+
+      // メタデータ内の参照を置換
+      if (asset.metaData) {
+        try {
+          const metaContent = uint8ArrayToString(asset.metaData);
+
+          if (guidPattern.test(metaContent)) {
+            guidPattern.lastIndex = 0; // グローバル検索のリセット
+            const updatedMetaContent = metaContent.replace(
+              guidPattern,
+              newGuid,
+            );
+            asset.metaData = new TextEncoder().encode(updatedMetaContent);
+          }
+        } catch {
+          // メタデータの処理に失敗した場合はスキップ
+          continue;
+        }
+      }
+    }
   }
 }
