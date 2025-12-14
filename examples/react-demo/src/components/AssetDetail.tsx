@@ -8,6 +8,7 @@ import {
   ScrollArea,
   TextInput,
   Button,
+  NumberInput,
 } from '@mantine/core';
 import type { UnityAsset } from 'unitypackage-js';
 import { useState } from 'react';
@@ -18,6 +19,8 @@ interface AssetDetailProps {
   onRename: (newPath: string) => void;
   onUpdateGuid: (newGuid: string) => void;
   onAutoGuid: () => void;
+  onRefreshThumbnail: (size: number) => void;
+  loading: boolean;
 }
 
 export function AssetDetail({
@@ -25,9 +28,17 @@ export function AssetDetail({
   onRename,
   onUpdateGuid,
   onAutoGuid,
+  onRefreshThumbnail,
+  loading,
 }: AssetDetailProps) {
   const [editingPath, setEditingPath] = useState(asset?.assetPath ?? '');
   const [editingGuid, setEditingGuid] = useState(asset?.guid ?? '');
+  const [thumbnailSize, setThumbnailSize] = useState<number | string>(128);
+
+  // Check if asset is an image
+  const isImage = asset
+    ? /\.(png|jpg|jpeg|gif|bmp|webp)$/i.test(asset.assetPath)
+    : false;
 
   if (!asset) {
     return (
@@ -116,6 +127,37 @@ export function AssetDetail({
                 {new TextDecoder().decode(asset.metaData)}
               </Code>
             </ScrollArea>
+          </Stack>
+        )}
+
+        {isImage && (
+          <Stack gap="xs">
+            <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+              Thumbnail
+            </Text>
+            <Group align="flex-end">
+              <NumberInput
+                value={thumbnailSize}
+                onChange={setThumbnailSize}
+                min={32}
+                max={512}
+                step={32}
+                style={{ flex: 1 }}
+                label="Size (px)"
+                placeholder="128"
+              />
+              <Button
+                onClick={() =>
+                  onRefreshThumbnail(
+                    typeof thumbnailSize === 'number' ? thumbnailSize : 128,
+                  )
+                }
+                variant="outline"
+                loading={loading}
+              >
+                Refresh Thumbnail
+              </Button>
+            </Group>
           </Stack>
         )}
 

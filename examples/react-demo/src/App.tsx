@@ -112,6 +112,23 @@ function App() {
     }
   };
 
+  const handleRefreshThumbnail = async (size: number = 128) => {
+    if (!unityPackage || !selectedPath) return;
+    setLoading(true);
+    try {
+      await unityPackage.refreshThumbnail(selectedPath, size);
+      setVersion((v) => v + 1);
+    } catch (e) {
+      console.error(e);
+      alert(
+        'Thumbnail refresh failed: ' +
+          (e instanceof Error ? e.message : String(e)),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Container size="xl" py="xl">
       <Stack gap="md">
@@ -159,6 +176,8 @@ function App() {
                 onRename={handleRename}
                 onUpdateGuid={handleUpdateGuid}
                 onAutoGuid={handleAutoGuid}
+                onRefreshThumbnail={handleRefreshThumbnail}
+                loading={loading}
               />
             </Grid.Col>
           </Grid>
