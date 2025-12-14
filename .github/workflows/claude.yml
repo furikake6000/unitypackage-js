@@ -47,7 +47,7 @@ jobs:
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.claude.com/en/docs/claude-code/cli-reference for available options
           claude_args: >-
-            --allowed-tools 'Bash(gh pr:*),Bash(npm install),Bash(npm run *)'
+            --allowed-tools 'Bash(gh pr:*),Bash(npm install),Bash(npm run lint),Bash(npm run lint:fix),Bash(npm run test),Bash(npm run build),Bash(npm run format:check),Bash(npm run format:write)'
             --system-prompt "You are an expert developer working on unitypackage-js,
             a TypeScript library for handling UnityPackages.
             Stack: TypeScript, tsup (build), vitest (test), eslint (lint), prettier (format).
