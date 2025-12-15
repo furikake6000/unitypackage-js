@@ -86,6 +86,8 @@ const setupCanvasMock = () => {
       return Promise.resolve(this.parts[0].buffer || new ArrayBuffer(8));
     }
   } as any;
+
+  return mockCanvas;
 };
 
 describe('UnityPackage.refreshThumbnail', () => {
@@ -119,7 +121,7 @@ describe('UnityPackage.refreshThumbnail', () => {
     });
 
     it('カスタムサイズでサムネイルを生成できる', async () => {
-      setupCanvasMock();
+      const mockCanvas = setupCanvasMock();
 
       const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
 
@@ -139,10 +141,14 @@ describe('UnityPackage.refreshThumbnail', () => {
       const updatedAsset = pkg.assets.get(imageAsset.assetPath);
       expect(updatedAsset).toBeDefined();
       expect(updatedAsset!.previewData).toBeDefined();
+
+      // Canvasのサイズが正しく設定されたか検証
+      expect(mockCanvas.width).toBe(256);
+      expect(mockCanvas.height).toBe(256);
     });
 
     it('デフォルトサイズは128である', async () => {
-      setupCanvasMock();
+      const mockCanvas = setupCanvasMock();
 
       const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
 
@@ -160,12 +166,8 @@ describe('UnityPackage.refreshThumbnail', () => {
       await pkg.refreshThumbnail(imageAsset.assetPath);
 
       // Canvasのwidthとheightが128に設定されることを確認
-      const createElementCalls = (global.document.createElement as any).mock
-        .calls;
-      const canvasCall = createElementCalls.find(
-        (call: any) => call[0] === 'canvas',
-      );
-      expect(canvasCall).toBeDefined();
+      expect(mockCanvas.width).toBe(128);
+      expect(mockCanvas.height).toBe(128);
     });
   });
 
@@ -319,15 +321,33 @@ describe('UnityPackage.refreshThumbnail', () => {
       ['Assets/test.prefab', false],
       ['Assets/test.txt', false],
       ['Assets/test.anim', false],
-    ])('%s は画像として%s判定される', async (assetPath, shouldBeImage) => {
-      // テスト用のダミーアセットを追加（privateメソッドのテストのため、実際の動作で検証）
-      // 実際には、isImageAssetはprivateなので、refreshThumbnailの挙動で確認する
-      // ここでは、画像拡張子のパターンテストとして記録
-      const match = assetPath.match(/\.(png|jpg|jpeg|gif|bmp|webp)$/i);
+    ])('%s は画像として%s判定される', async (testPath, shouldBeImage) => {
+      setupCanvasMock();
+      const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
+
+      // 全アセットの中で1つだけ画像を探して、それをテスト対象のパスにリネームして検証する
+      const existingPng = Array.from(pkg.assets.values()).find((asset) =>
+        asset.assetPath.endsWith('.png'),
+      );
+
+      if (!existingPng) {
+        // テスト用パッケージに画像がない場合はスキップせざるを得ないが、
+        // fixtures/standard.unitypackageには画像が含まれている前提
+        console.warn('Skipping format test due to missing PNG asset');
+        return;
+      }
+
+      // 既存のアセットをテストしたいパス名に変更
+      pkg.renameAsset(existingPng.assetPath, testPath);
+
       if (shouldBeImage) {
-        expect(match).not.toBeNull();
+        // 画像と判定されるべき場合はエラーにならない
+        await expect(pkg.refreshThumbnail(testPath)).resolves.not.toThrow();
       } else {
-        expect(match).toBeNull();
+        // 画像でないと判定されるべき場合はエラーになる
+        await expect(pkg.refreshThumbnail(testPath)).rejects.toThrow(
+          'は画像ではありません',
+        );
       }
     });
   });
