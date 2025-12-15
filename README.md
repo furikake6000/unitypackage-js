@@ -136,12 +136,6 @@ await unityPackage.refreshThumbnail(assetPath, 256);
 const newPackageData = await unityPackage.export();
 ```
 
-**注意事項:**
-
-- この機能はブラウザ環境でのみ動作します（Canvas API必須）
-- 画像アセット（.png, .jpg, .jpeg, .gif, .bmp, .webp）のみサポート
-- アスペクト比を維持しつつ、中央配置で正方形サムネイルを生成します
-
 ### 4. UnityPackageの再構築と出力
 
 ```typescript
