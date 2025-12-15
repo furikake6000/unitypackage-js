@@ -120,6 +120,22 @@ unityPackage.replaceAssetGuid(newPath, newGuid);
 const newPackageData = await unityPackage.export();
 ```
 
+#### サムネイルの再生成
+
+```typescript
+// 画像アセットのサムネイル（preview.png）を再生成
+const assetPath = 'Assets/Image.png';
+
+// デフォルトサイズ（128x128）で再生成
+await unityPackage.refreshThumbnail(assetPath);
+
+// カスタムサイズで再生成
+await unityPackage.refreshThumbnail(assetPath, 256);
+
+// パッケージをエクスポート
+const newPackageData = await unityPackage.export();
+```
+
 ### 4. UnityPackageの再構築と出力
 
 ```typescript
@@ -170,13 +186,14 @@ interface UnityAsset {
 
 ### `UnityPackage`クラス
 
-| メソッド/プロパティ                     | 型                                                 | 説明                                                                                                                                     |
-| :-------------------------------------- | :------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
-| `UnityPackage.fromArrayBuffer` (static) | `(data: ArrayBuffer) => Promise<UnityPackage>`     | .unitypackageファイル（tar.gz）のバイナリデータを解析し、UnityPackageインスタンスを返します。                                            |
-| `export`                                | `() => Promise<ArrayBuffer>`                       | UnityPackageインスタンスから.unitypackageファイル（tar.gz）のバイナリデータを生成して返します。                                          |
-| `assets`                                | `ReadonlyMap<string, UnityAsset>`                  | パスをキーとしたアセット情報のマップ（読み取り専用）を取得します。                                                                       |
-| `renameAsset`                           | `(oldPath: string, newPath: string) => boolean`    | アセットのパスを変更します。GUIDは保持されます。成功時はtrue、失敗時はfalseを返します。                                                  |
-| `replaceAssetGuid`                      | `(assetPath: string, newGuid?: string) => boolean` | アセットのGUIDを変更し、パッケージ内のすべての参照を更新します。newGuid省略時は自動生成されます。成功時はtrue、失敗時はfalseを返します。 |
+| メソッド/プロパティ                     | 型                                                    | 説明                                                                                                                                     |
+| :-------------------------------------- | :---------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
+| `UnityPackage.fromArrayBuffer` (static) | `(data: ArrayBuffer) => Promise<UnityPackage>`        | .unitypackageファイル（tar.gz）のバイナリデータを解析し、UnityPackageインスタンスを返します。                                            |
+| `export`                                | `() => Promise<ArrayBuffer>`                          | UnityPackageインスタンスから.unitypackageファイル（tar.gz）のバイナリデータを生成して返します。                                          |
+| `assets`                                | `ReadonlyMap<string, UnityAsset>`                     | パスをキーとしたアセット情報のマップ（読み取り専用）を取得します。                                                                       |
+| `renameAsset`                           | `(oldPath: string, newPath: string) => boolean`       | アセットのパスを変更します。GUIDは保持されます。成功時はtrue、失敗時はfalseを返します。                                                  |
+| `replaceAssetGuid`                      | `(assetPath: string, newGuid?: string) => boolean`    | アセットのGUIDを変更し、パッケージ内のすべての参照を更新します。newGuid省略時は自動生成されます。成功時はtrue、失敗時はfalseを返します。 |
+| `refreshThumbnail`                      | `(assetPath: string, size?: number) => Promise<void>` | 画像アセットのサムネイル（preview.png）を再生成します。size省略時は128。ブラウザ環境専用。                                               |
 
 ## サンプル
 

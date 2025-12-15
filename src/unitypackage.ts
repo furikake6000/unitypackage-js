@@ -1,4 +1,5 @@
 import { generateNewGuid, uint8ArrayToString } from './utils/files';
+import { generateSquareThumbnail } from './utils/images';
 import {
   addOriginalNameToGzip,
   compressTarGz,
@@ -245,6 +246,25 @@ export class UnityPackage {
   }
 
   /**
+   * 指定されたパスのアセットのサムネイル(preview.png)を更新する非同期アセット
+   * 画像アセットにのみ対応、対象のアセットが画像でなければRejectする
+   * @param assetPath アセットのパス
+   * @param size サムネイルのサイズ
+   */
+  async refreshThumbnail(assetPath: string, size: number = 128): Promise<void> {
+    const asset = this._assets.get(assetPath);
+    if (!asset) {
+      throw new Error(`アセット '${assetPath}' が見つかりません`);
+    }
+
+    if (!this.isImageAsset(assetPath)) {
+      throw new Error(`アセット '${assetPath}' は画像ではありません`);
+    }
+
+    asset.previewData = await generateSquareThumbnail(asset.assetData, size);
+  }
+
+  /**
    * パッケージ内のすべてのアセットで指定されたGUID参照を置換する
    * @param oldGuid 変更前のGUID
    * @param newGuid 変更後のGUID
@@ -291,5 +311,16 @@ export class UnityPackage {
         }
       }
     }
+  }
+
+  /**
+   * 指定されたパスのアセットが画像かどうか判別する
+   * パスの拡張子しか見ていないため、確実ではない点に注意
+   * @param assetPath アセットのパス
+   */
+  private isImageAsset(assetPath: string): boolean {
+    const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+    const lowercasePath = assetPath.toLowerCase();
+    return imageExtensions.some((ext) => lowercasePath.endsWith(ext));
   }
 }
