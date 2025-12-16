@@ -6,7 +6,8 @@ UnityPackageの操作テスト用のファイル群です。
 - `standard.unitypackage`: 標準的な用途を想定したUnityPackageファイルです。以下を含んでいます。
   - `DummyScript.cs`: 何もしないシンプルなC#スクリプト
   - `Animations`
-    - `Hop.anim`: シンプルなアニメーション
+    - `Hop.anim`: オブジェクトの座標を動かすアニメーション(PositionCurve使用)
+    - `TextureMove.anim`: テクスチャのUV座標を動かすアニメーション(FloatCurve使用)
     - `Cube.controller`: アニメーターコントローラー
   - `Materials`
     - `Colorful.mat`: デフォルト設定の基本マテリアル
