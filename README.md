@@ -144,9 +144,8 @@ const newPackageData = await pkg.export();
 ```
 
 **注意事項:**
-- `UnityAnimation`クラスは現在FloatCurveのみをサポートしています
-- PositionCurves、RotationCurves、ScaleCurves等は未対応です
-- 未対応のcurveを含むアニメーションへの利用は非推奨です
+
+- `UnityAnimation`クラスは現在FloatCurveのみをサポートしています。PositionCurves、RotationCurves、ScaleCurves等は未対応であり、これらを含むアニメーションへの利用は非推奨です
 
 #### 構造化データの書き換え
 
