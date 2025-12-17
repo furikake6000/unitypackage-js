@@ -59,7 +59,93 @@ for (const [path, asset] of assets) {
 
 #### アニメーションの書き換え
 
-// TBD
+```typescript
+import { UnityPackage, UnityAnimation } from 'unitypackage-js';
+
+// UnityPackageからアニメーションを抽出
+const pkg = await UnityPackage.fromArrayBuffer(buffer);
+const asset = pkg.assets.get('Assets/Animations/MyAnim.anim');
+if (!asset) {
+  throw new Error('アニメーションが見つかりません');
+}
+
+// YAMLコンテンツをデコード
+const yamlContent = new TextDecoder().decode(asset.assetData);
+
+// UnityAnimationクラスでアニメーションを編集
+const anim = new UnityAnimation(yamlContent);
+
+// アニメーション名を変更
+anim.setName('NewAnimationName');
+
+// 既存のFloatCurveを取得
+const curves = anim.getFloatCurves();
+console.log(`FloatCurve数: ${curves.length}`);
+
+// 特定のFloatCurveを取得
+const curve = anim.getCurve('material._MainTex_ST.x', '');
+if (curve) {
+  console.log(`キーフレーム数: ${curve.curve.m_Curve.length}`);
+}
+
+// 新しいキーフレームを追加
+anim.addKeyframe('material._MainTex_ST.x', '', {
+  time: 0.5,
+  value: 0.5,
+  inSlope: 0,
+  outSlope: 0,
+  tangentMode: 136,
+  weightedMode: 0,
+  inWeight: 0.33333334,
+  outWeight: 0.33333334,
+});
+
+// 特定の時間のキーフレームを削除
+anim.removeKeyframe('material._MainTex_ST.x', '', 0.5);
+
+// 新しいFloatCurveを追加
+anim.addCurve({
+  curve: {
+    path: '',
+    attribute: 'material._Color.r',
+    script: { fileID: 0 },
+    classID: 0,
+    m_Curve: [
+      {
+        time: 0,
+        value: 1,
+        inSlope: 0,
+        outSlope: 0,
+        tangentMode: 136,
+        weightedMode: 0,
+        inWeight: 0.33333334,
+        outWeight: 0.33333334,
+      },
+    ],
+    m_PreInfinity: 2,
+    m_PostInfinity: 2,
+    m_RotationOrder: 4,
+  },
+  attribute: 'material._Color.r',
+});
+
+// FloatCurveを削除
+anim.removeCurve('material._Color.r', '');
+
+// 編集したYAMLをエクスポート
+const updatedYaml = anim.exportToYaml();
+
+// UnityPackageのアセットデータを更新
+const updatedAssetData = new TextEncoder().encode(updatedYaml);
+// 注: UnityPackageのアセット更新APIは今後追加予定
+
+// パッケージをエクスポート
+const newPackageData = await pkg.export();
+```
+
+**注意事項:**
+
+- `UnityAnimation`クラスは現在FloatCurveのみをサポートしています。PositionCurves、RotationCurves、ScaleCurves等は未対応であり、これらを含むアニメーションへの利用は非推奨です
 
 #### 構造化データの書き換え
 
