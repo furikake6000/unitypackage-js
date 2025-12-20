@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Accordion,
   Alert,
@@ -46,10 +46,11 @@ const defaultKeyframeValues: Keyframe = {
 };
 
 export function AnimationEditor({ asset, onSave }: AnimationEditorProps) {
-  const [animation, setAnimation] = useState<UnityAnimation | null>(null);
   const [version, setVersion] = useState(0);
-  const [parseError, setParseError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const [statusByAsset, setStatusByAsset] = useState<Record<string, string>>(
+    {},
+  );
   const [newCurve, setNewCurve] = useState<CurveDraft>(
     () =>
       ({
@@ -59,38 +60,48 @@ export function AnimationEditor({ asset, onSave }: AnimationEditorProps) {
         value: 0,
       }) satisfies CurveDraft,
   );
-  const [draftKeyframes, setDraftKeyframes] = useState<
-    Record<string, KeyframeDraft>
+  const [draftKeyframesByAsset, setDraftKeyframesByAsset] = useState<
+    Record<string, Record<string, KeyframeDraft>>
   >({});
 
   const decoder = useMemo(() => new TextDecoder('utf-8'), []);
   const encoder = useMemo(() => new TextEncoder(), []);
 
-  const loadAnimation = () => {
-    setStatus(null);
+  const assetKey = asset.assetPath;
+  const status = statusByAsset[assetKey] ?? null;
+  const draftKeyframes = draftKeyframesByAsset[assetKey] ?? {};
+
+  const { animation, parseError } = useMemo(() => {
     try {
       const yaml = decoder.decode(asset.assetData);
-      const parsed = new UnityAnimation(yaml);
-      setAnimation(parsed);
-      setParseError(null);
-      setDraftKeyframes({});
-      setVersion((v) => v + 1);
+      return { animation: new UnityAnimation(yaml), parseError: null };
     } catch (error) {
-      setAnimation(null);
-      setParseError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to parse AnimationClip YAML',
-      );
+      return {
+        animation: null,
+        parseError:
+          error instanceof Error
+            ? error.message
+            : 'Failed to parse AnimationClip YAML',
+      };
     }
-  };
-
-  useEffect(() => {
-    loadAnimation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [asset.assetPath]);
+  }, [asset.assetData, decoder, reloadToken]);
 
   const refresh = () => setVersion((v) => v + 1);
+
+  const reloadAnimation = useCallback(() => {
+    setStatusByAsset((prev) => {
+      if (!(assetKey in prev)) return prev;
+      const next = { ...prev };
+      delete next[assetKey];
+      return next;
+    });
+    setDraftKeyframesByAsset((prev) => ({
+      ...prev,
+      [assetKey]: {},
+    }));
+    setReloadToken((v) => v + 1);
+    refresh();
+  }, [assetKey]);
 
   const updateKeyframe = (
     curve: FloatCurve,
@@ -120,9 +131,12 @@ export function AnimationEditor({ asset, onSave }: AnimationEditorProps) {
       time,
       value,
     });
-    setDraftKeyframes((prev) => ({
+    setDraftKeyframesByAsset((prev) => ({
       ...prev,
-      [curveKey]: { time: 0, value: 0 },
+      [assetKey]: {
+        ...(prev[assetKey] ?? {}),
+        [curveKey]: { time: 0, value: 0 },
+      },
     }));
     refresh();
   };
@@ -130,7 +144,10 @@ export function AnimationEditor({ asset, onSave }: AnimationEditorProps) {
   const handleAddCurve = () => {
     if (!animation) return;
     if (!newCurve.attribute.trim()) {
-      setStatus('Attribute is required to add a curve.');
+      setStatusByAsset((prev) => ({
+        ...prev,
+        [assetKey]: 'Attribute is required to add a curve.',
+      }));
       return;
     }
 
@@ -148,7 +165,10 @@ export function AnimationEditor({ asset, onSave }: AnimationEditorProps) {
 
     setNewCurve({ attribute: '', path: '', time: 0, value: 0 });
     refresh();
-    setStatus('New float curve added.');
+    setStatusByAsset((prev) => ({
+      ...prev,
+      [assetKey]: 'New float curve added.',
+    }));
   };
 
   const handleSave = () => {
@@ -157,13 +177,18 @@ export function AnimationEditor({ asset, onSave }: AnimationEditorProps) {
       const updatedYaml = animation.exportToYaml();
       const data = encoder.encode(updatedYaml);
       onSave(data);
-      setStatus('Animation data updated in the selected asset.');
+      setStatusByAsset((prev) => ({
+        ...prev,
+        [assetKey]: 'Animation data updated in the selected asset.',
+      }));
     } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? `Failed to rebuild YAML: ${error.message}`
-          : 'Failed to rebuild YAML',
-      );
+      setStatusByAsset((prev) => ({
+        ...prev,
+        [assetKey]:
+          error instanceof Error
+            ? `Failed to rebuild YAML: ${error.message}`
+            : 'Failed to rebuild YAML',
+      }));
     }
   };
 
@@ -182,7 +207,7 @@ export function AnimationEditor({ asset, onSave }: AnimationEditorProps) {
               YAML
             </Badge>
           </Group>
-          <Button size="xs" variant="light" onClick={loadAnimation}>
+          <Button size="xs" variant="light" onClick={reloadAnimation}>
             Reset from asset
           </Button>
         </Group>
@@ -309,9 +334,12 @@ export function AnimationEditor({ asset, onSave }: AnimationEditorProps) {
                             label="New keyframe time"
                             value={draft.time}
                             onChange={(value) =>
-                              setDraftKeyframes((prev) => ({
+                              setDraftKeyframesByAsset((prev) => ({
                                 ...prev,
-                                [curveKey]: { ...draft, time: value ?? 0 },
+                                [assetKey]: {
+                                  ...(prev[assetKey] ?? {}),
+                                  [curveKey]: { ...draft, time: value ?? 0 },
+                                },
                               }))
                             }
                             step={0.01}
@@ -320,9 +348,12 @@ export function AnimationEditor({ asset, onSave }: AnimationEditorProps) {
                             label="New keyframe value"
                             value={draft.value}
                             onChange={(value) =>
-                              setDraftKeyframes((prev) => ({
+                              setDraftKeyframesByAsset((prev) => ({
                                 ...prev,
-                                [curveKey]: { ...draft, value: value ?? 0 },
+                                [assetKey]: {
+                                  ...(prev[assetKey] ?? {}),
+                                  [curveKey]: { ...draft, value: value ?? 0 },
+                                },
                               }))
                             }
                             step={0.01}
@@ -392,7 +423,7 @@ export function AnimationEditor({ asset, onSave }: AnimationEditorProps) {
             </Paper>
 
             <Group justify="flex-end">
-              <Button variant="default" onClick={loadAnimation}>
+              <Button variant="default" onClick={reloadAnimation}>
                 Discard changes
               </Button>
               <Button onClick={handleSave}>Save animation to asset</Button>
