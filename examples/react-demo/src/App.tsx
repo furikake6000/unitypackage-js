@@ -129,6 +129,18 @@ function App() {
     }
   };
 
+  const handleUpdateAnimation = (
+    assetPath: string,
+    updatedData: Uint8Array,
+  ) => {
+    if (!unityPackage) return;
+    const targetAsset = unityPackage.assets.get(assetPath);
+    if (!targetAsset) return;
+
+    targetAsset.assetData = updatedData;
+    setVersion((v) => v + 1);
+  };
+
   return (
     <Container size="xl" py="xl">
       <Stack gap="md">
@@ -177,6 +189,7 @@ function App() {
                 onUpdateGuid={handleUpdateGuid}
                 onAutoGuid={handleAutoGuid}
                 onRefreshThumbnail={handleRefreshThumbnail}
+                onUpdateAnimation={handleUpdateAnimation}
                 loading={loading}
               />
             </Grid.Col>
