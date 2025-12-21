@@ -94,7 +94,7 @@ export function AnimationEditor({
             : 'Failed to load animation from UnityPackage',
       };
     }
-  }, [asset.assetPath, reloadToken, unityPackage]);
+  }, [asset.assetPath, unityPackage]);
 
   const refresh = () => setVersion((v) => v + 1);
 

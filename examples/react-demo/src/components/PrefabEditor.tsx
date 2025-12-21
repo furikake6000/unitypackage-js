@@ -59,7 +59,7 @@ export function PrefabEditor({
             : 'Failed to load Prefab from UnityPackage',
       };
     }
-  }, [asset.assetPath, reloadToken, unityPackage]);
+  }, [asset.assetPath, unityPackage]);
 
   const resetPrefab = () => {
     setPropertyDrafts({});
