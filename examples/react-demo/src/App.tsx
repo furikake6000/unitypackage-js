@@ -129,16 +129,17 @@ function App() {
     }
   };
 
-  const handleUpdateAnimation = (
+  const handleUpdateAssetData = (
     assetPath: string,
     updatedData: Uint8Array,
   ) => {
     if (!unityPackage) return;
-    const targetAsset = unityPackage.assets.get(assetPath);
-    if (!targetAsset) return;
-
-    targetAsset.assetData = updatedData;
-    setVersion((v) => v + 1);
+    const success = unityPackage.updateAssetData(assetPath, updatedData);
+    if (success) {
+      setVersion((v) => v + 1);
+    } else {
+      alert('Animation update failed: asset not found');
+    }
   };
 
   return (
@@ -184,12 +185,13 @@ function App() {
                     ? `${selectedAsset.assetPath}-${selectedAsset.guid}`
                     : 'empty'
                 }
+                unityPackage={unityPackage}
                 asset={selectedAsset || null}
                 onRename={handleRename}
                 onUpdateGuid={handleUpdateGuid}
                 onAutoGuid={handleAutoGuid}
                 onRefreshThumbnail={handleRefreshThumbnail}
-                onUpdateAnimation={handleUpdateAnimation}
+                onUpdateAssetData={handleUpdateAssetData}
                 loading={loading}
               />
             </Grid.Col>

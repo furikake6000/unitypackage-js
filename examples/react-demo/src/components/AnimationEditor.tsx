@@ -13,13 +13,14 @@ import {
   TextInput,
 } from '@mantine/core';
 import {
-  UnityAnimation,
   type FloatCurve,
   type Keyframe,
   type UnityAsset,
+  type UnityPackage,
 } from 'unitypackage-js';
 
 interface AnimationEditorProps {
+  unityPackage: UnityPackage;
   asset: UnityAsset;
   onSave: (updatedData: Uint8Array) => void;
 }
@@ -45,7 +46,11 @@ const defaultKeyframeValues: Keyframe = {
   outWeight: 0.33333334,
 };
 
-export function AnimationEditor({ asset, onSave }: AnimationEditorProps) {
+export function AnimationEditor({
+  unityPackage,
+  asset,
+  onSave,
+}: AnimationEditorProps) {
   const [version, setVersion] = useState(0);
   const [reloadToken, setReloadToken] = useState(0);
   const [statusByAsset, setStatusByAsset] = useState<Record<string, string>>(
@@ -64,7 +69,6 @@ export function AnimationEditor({ asset, onSave }: AnimationEditorProps) {
     Record<string, Record<string, KeyframeDraft>>
   >({});
 
-  const decoder = useMemo(() => new TextDecoder('utf-8'), []);
   const encoder = useMemo(() => new TextEncoder(), []);
 
   const assetKey = asset.assetPath;
@@ -73,18 +77,24 @@ export function AnimationEditor({ asset, onSave }: AnimationEditorProps) {
 
   const { animation, parseError } = useMemo(() => {
     try {
-      const yaml = decoder.decode(asset.assetData);
-      return { animation: new UnityAnimation(yaml), parseError: null };
+      const animation = unityPackage.getAnimation(asset.assetPath);
+      if (!animation) {
+        return {
+          animation: null,
+          parseError: 'Animation asset not found in the package.',
+        };
+      }
+      return { animation, parseError: null };
     } catch (error) {
       return {
         animation: null,
         parseError:
           error instanceof Error
             ? error.message
-            : 'Failed to parse AnimationClip YAML',
+            : 'Failed to load animation from UnityPackage',
       };
     }
-  }, [asset.assetData, decoder, reloadToken]);
+  }, [asset.assetPath, unityPackage]);
 
   const refresh = () => setVersion((v) => v + 1);
 

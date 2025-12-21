@@ -10,28 +10,31 @@ import {
   Button,
   NumberInput,
 } from '@mantine/core';
-import type { UnityAsset } from 'unitypackage-js';
+import type { UnityAsset, UnityPackage } from 'unitypackage-js';
 import { useState } from 'react';
 import { formatBytes } from '../utils/format';
 import { AnimationEditor } from './AnimationEditor';
+import { PrefabEditor } from './PrefabEditor';
 
 interface AssetDetailProps {
+  unityPackage: UnityPackage;
   asset: UnityAsset | null;
   onRename: (newPath: string) => void;
   onUpdateGuid: (newGuid: string) => void;
   onAutoGuid: () => void;
   onRefreshThumbnail: (size: number) => void;
-  onUpdateAnimation: (assetPath: string, updatedData: Uint8Array) => void;
+  onUpdateAssetData: (assetPath: string, updatedData: Uint8Array) => void;
   loading: boolean;
 }
 
 export function AssetDetail({
+  unityPackage,
   asset,
   onRename,
   onUpdateGuid,
   onAutoGuid,
   onRefreshThumbnail,
-  onUpdateAnimation,
+  onUpdateAssetData,
   loading,
 }: AssetDetailProps) {
   const [editingPath, setEditingPath] = useState(asset?.assetPath ?? '');
@@ -186,8 +189,17 @@ export function AssetDetail({
 
         {asset.assetPath.toLowerCase().endsWith('.anim') && (
           <AnimationEditor
+            unityPackage={unityPackage}
             asset={asset}
-            onSave={(data) => onUpdateAnimation(asset.assetPath, data)}
+            onSave={(data) => onUpdateAssetData(asset.assetPath, data)}
+          />
+        )}
+
+        {asset.assetPath.toLowerCase().endsWith('.prefab') && (
+          <PrefabEditor
+            unityPackage={unityPackage}
+            asset={asset}
+            onSave={(data) => onUpdateAssetData(asset.assetPath, data)}
           />
         )}
       </Stack>
