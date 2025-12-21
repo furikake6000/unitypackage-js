@@ -192,6 +192,140 @@ describe('UnityPackage.export', () => {
   });
 });
 
+describe('UnityPackage.updateAssetData', () => {
+  it('アセットデータを更新できる', async () => {
+    const pkg = await UnityPackage.fromArrayBuffer(minimalPackageData);
+    const assetPath = Array.from(pkg.assets.keys())[0];
+
+    const newData = new TextEncoder().encode('updated asset data');
+    const result = pkg.updateAssetData(assetPath, newData);
+
+    expect(result).toBe(true);
+    expect(pkg.assets.get(assetPath)!.assetData).toEqual(newData);
+  });
+
+  it('存在しないアセットの更新は失敗する', async () => {
+    const pkg = await UnityPackage.fromArrayBuffer(minimalPackageData);
+
+    const result = pkg.updateAssetData(
+      'Assets/NonExistent.asset',
+      new TextEncoder().encode('data'),
+    );
+
+    expect(result).toBe(false);
+  });
+
+  it('更新後にエクスポート・再インポートしてもデータが保持される', async () => {
+    const pkg = await UnityPackage.fromArrayBuffer(minimalPackageData);
+    const assetPath = Array.from(pkg.assets.keys())[0];
+
+    const newData = new TextEncoder().encode('roundtrip update');
+    pkg.updateAssetData(assetPath, newData);
+
+    const exported = await pkg.export();
+    const reimported = await UnityPackage.fromArrayBuffer(exported);
+
+    expect(reimported.assets.get(assetPath)!.assetData).toEqual(newData);
+  });
+});
+
+describe('UnityPackage.getAnimation', () => {
+  it('アニメーションアセットからUnityAnimationを取得できる', async () => {
+    const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
+
+    const animAssetPath = Array.from(pkg.assets.keys()).find((path) =>
+      path.endsWith('TextureMove.anim'),
+    );
+    expect(animAssetPath).toBeDefined();
+
+    const anim = pkg.getAnimation(animAssetPath!);
+    expect(anim).toBeDefined();
+    expect(anim!.getName()).toBe('TextureMove');
+
+    const curves = anim!.getFloatCurves();
+    expect(curves.length).toBe(4);
+    const mainTexCurve = anim!.getCurve('material._MainTex_ST.x', '');
+    expect(mainTexCurve).toBeDefined();
+    expect(mainTexCurve!.keyframes.length).toBe(2);
+  });
+
+  it('存在しないアセット名はundefinedを返す', async () => {
+    const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
+
+    expect(pkg.getAnimation('Assets/NonExistent.anim')).toBeUndefined();
+  });
+
+  it('不適切なファイル名ではエラーをスローする', async () => {
+    const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
+
+    const animAssetPath = Array.from(pkg.assets.keys()).find((path) =>
+      path.endsWith('TextureMove.anim'),
+    );
+    expect(animAssetPath).toBeDefined();
+
+    expect(() => pkg.getPrefab(animAssetPath!)).toThrow(
+      /アセット '.+TextureMove\.anim' はPrefabではありません/,
+    );
+  });
+});
+
+describe('UnityPackage.getPrefab', () => {
+  it('PrefabアセットからUnityPrefabを取得できる', async () => {
+    const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
+
+    const prefabAssetPath = Array.from(pkg.assets.keys()).find((path) =>
+      path.endsWith('Cube.prefab'),
+    );
+    expect(prefabAssetPath).toBeDefined();
+
+    const prefab = pkg.getPrefab(prefabAssetPath!);
+    expect(prefab).toBeDefined();
+    expect(prefab!.components.length).toBeGreaterThan(0);
+
+    for (const component of prefab!.components) {
+      expect(component.unityType).toBe('114');
+      expect(component.fileId.length).toBeGreaterThan(0);
+      expect(component.scriptGuid).toMatch(/^[0-9a-fA-F]+$/);
+      expect(component.rawYaml).toContain('MonoBehaviour');
+    }
+
+    const scriptAssetPath = Array.from(pkg.assets.keys()).find((path) =>
+      path.endsWith('DummyScript.cs'),
+    );
+    expect(scriptAssetPath).toBeDefined();
+    const scriptAsset = pkg.assets.get(scriptAssetPath!);
+    expect(scriptAsset?.metaData).toBeDefined();
+
+    const metaContent = new TextDecoder().decode(scriptAsset!.metaData!);
+    const guidMatch = metaContent.match(/^guid: ([0-9a-fA-F]{32})$/m);
+    expect(guidMatch).toBeTruthy();
+
+    const componentsByScript = prefab!.findComponentsByScriptGuid(
+      guidMatch![1],
+    );
+    expect(componentsByScript.length).toBeGreaterThan(0);
+  });
+
+  it('存在しないアセット名はundefinedを返す', async () => {
+    const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
+
+    expect(pkg.getPrefab('Assets/NonExistent.prefab')).toBeUndefined();
+  });
+
+  it('不適切なファイル名ではエラーをスローする', async () => {
+    const pkg = await UnityPackage.fromArrayBuffer(standardPackageData);
+
+    const prefabAssetPath = Array.from(pkg.assets.keys()).find((path) =>
+      path.endsWith('Cube.prefab'),
+    );
+    expect(prefabAssetPath).toBeDefined();
+
+    expect(() => pkg.getAnimation(prefabAssetPath!)).toThrow(
+      /アセット '.+Cube\.prefab' はアニメーションではありません/,
+    );
+  });
+});
+
 describe('ラウンドトリップテスト', () => {
   it('最小構成: import → export → import でデータが保持される', async () => {
     const original = await UnityPackage.fromArrayBuffer(minimalPackageData);

@@ -1,3 +1,5 @@
+import { UnityAnimation } from './unityanimation';
+import { UnityPrefab } from './unityprefab';
 import { generateNewGuid, uint8ArrayToString } from './utils/files';
 import { generateSquareThumbnail } from './utils/images';
 import {
@@ -172,6 +174,62 @@ export class UnityPackage {
    */
   get assets(): ReadonlyMap<string, UnityAsset> {
     return this._assets;
+  }
+
+  /**
+   * アセットパスに対応するUnityAnimationを取得する
+   * @param assetPath アニメーションアセットのパス
+   */
+  getAnimation(assetPath: string): UnityAnimation | undefined {
+    const asset = this._assets.get(assetPath);
+    if (!asset) {
+      return undefined;
+    }
+
+    if (!assetPath.toLowerCase().endsWith('.anim')) {
+      throw new Error(`アセット '${assetPath}' はアニメーションではありません`);
+    }
+
+    const yamlContent = new TextDecoder().decode(asset.assetData);
+    return new UnityAnimation(yamlContent);
+  }
+
+  /**
+   * アセットパスに対応するUnityPrefabを取得する
+   * @param assetPath Prefabアセットのパス
+   */
+  getPrefab(assetPath: string): UnityPrefab | undefined {
+    const asset = this._assets.get(assetPath);
+    if (!asset) {
+      return undefined;
+    }
+
+    if (!assetPath.toLowerCase().endsWith('.prefab')) {
+      throw new Error(`アセット '${assetPath}' はPrefabではありません`);
+    }
+
+    const yamlContent = new TextDecoder().decode(asset.assetData);
+    return new UnityPrefab(yamlContent);
+  }
+
+  /**
+   * 指定したアセットのデータを更新する
+   * @param assetPath 更新対象のアセットパス
+   * @param assetData 新しいアセットデータ
+   * @returns 更新が成功したかどうか
+   */
+  updateAssetData(
+    assetPath: string,
+    assetData: Uint8Array | ArrayBuffer,
+  ): boolean {
+    const asset = this._assets.get(assetPath);
+    if (!asset) {
+      return false;
+    }
+
+    asset.assetData =
+      assetData instanceof Uint8Array ? assetData : new Uint8Array(assetData);
+    return true;
   }
 
   /**
