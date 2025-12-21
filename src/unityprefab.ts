@@ -172,4 +172,12 @@ export class UnityPrefab {
 
     return updatedYaml;
   }
+
+  /**
+   * 現在のYAML内容を取得
+   * @returns 更新済みのYAML文字列
+   */
+  exportToYaml(): string {
+    return this._originalYaml;
+  }
 }

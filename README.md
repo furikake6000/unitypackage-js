@@ -55,7 +55,31 @@ for (const [path, asset] of assets) {
 
 #### 画像ファイルの置き換え
 
-// TBD
+```typescript
+import { UnityPackage } from 'unitypackage-js';
+
+const pkg = await UnityPackage.fromArrayBuffer(buffer);
+
+// 置き換えたいアセットパス
+const targetPath = 'Assets/Textures/Logo.png';
+
+// 新しい画像データ（Uint8Arrayなど）を用意
+const newImageData: Uint8Array = await fetch('/new/logo.png').then((res) =>
+  res.arrayBuffer(),
+).then((buf) => new Uint8Array(buf));
+
+// アセットデータを置き換え
+const replaced = pkg.updateAssetData(targetPath, newImageData);
+if (!replaced) {
+  throw new Error('指定した画像が見つかりません');
+}
+
+// 必要に応じてプレビュー画像を再生成
+await pkg.refreshThumbnail(targetPath, 256);
+
+// パッケージを再エクスポート
+const newPackageData = await pkg.export();
+```
 
 #### アニメーションの書き換え
 
@@ -152,7 +176,37 @@ const newPackageData = await pkg.export();
 
 #### 構造化データの書き換え
 
-// TBD
+Prefab内のMonoBehaviourコンポーネントを編集する例です。`UnityPackage.getPrefab`でPrefabを取得し、`UnityPrefab.updateComponentProperties`でプロパティを更新します。
+
+```typescript
+import { UnityPackage } from 'unitypackage-js';
+
+// パッケージの読み込み
+const pkg = await UnityPackage.fromArrayBuffer(buffer);
+
+// Prefabを取得
+const prefabAssetPath = 'Assets/Standard/Cube.prefab';
+const prefab = pkg.getPrefab(prefabAssetPath);
+if (!prefab) {
+  throw new Error('Prefabが見つかりません');
+}
+
+// MonoBehaviourスクリプトのGUIDを特定
+const scriptGuid = 'fea934192617d364d952c97c88563ef9'; // 例: DummyScript.cs の GUID
+
+// プロパティを更新
+prefab.updateComponentProperties(scriptGuid, {
+  m_Enabled: '0',
+  m_ObjectHideFlags: '1',
+});
+
+// 更新後のYAMLをエクスポートしてアセットデータを差し替え
+const updatedData = new TextEncoder().encode(prefab.exportToYaml());
+pkg.updateAssetData(prefabAssetPath, updatedData);
+
+// エクスポート
+const newPackageData = await pkg.export();
+```
 
 #### アセットパスのリネーム
 
