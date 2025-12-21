@@ -21,6 +21,7 @@ export interface FloatCurve {
   attribute: string;
   path: string;
   keyframes: Keyframe[];
+  classID: number;
 }
 
 /**
@@ -165,7 +166,7 @@ export class UnityAnimation {
         },
         attribute: curve.attribute,
         path: curve.path,
-        classID: 137,
+        classID: curve.classID,
         script: { fileID: 0 },
         flags: 16,
       }),
@@ -194,7 +195,7 @@ export class UnityAnimation {
       path: curve.path,
       attribute: curve.attribute,
       script: { fileID: 0 },
-      typeID: 137,
+      typeID: curve.classID,
       customType: 22,
       isPPtrCurve: 0,
       isIntCurve: 0,
@@ -280,6 +281,7 @@ export class UnityAnimation {
     interface ParsedCurveData {
       attribute?: string;
       path?: string;
+      classID?: number;
       curve?: {
         m_Curve?: ParsedKeyframe[];
       };
@@ -292,6 +294,7 @@ export class UnityAnimation {
       return {
         attribute: parsed.attribute || '',
         path: parsed.path || '',
+        classID: typeof parsed.classID === 'number' ? parsed.classID : 0,
         keyframes: (parsed.curve?.m_Curve || []).map((kf: ParsedKeyframe) => ({
           time: typeof kf.time === 'number' ? kf.time : 0,
           value: typeof kf.value === 'number' ? kf.value : 0,
@@ -393,7 +396,7 @@ export class UnityAnimation {
       },
       attribute: curve.attribute,
       path: curve.path,
-      classID: 137,
+      classID: curve.classID,
       script: { fileID: 0 },
       flags: 16,
     }));

@@ -13,6 +13,7 @@ import {
 import type { UnityAsset } from 'unitypackage-js';
 import { useState } from 'react';
 import { formatBytes } from '../utils/format';
+import { AnimationEditor } from './AnimationEditor';
 
 interface AssetDetailProps {
   asset: UnityAsset | null;
@@ -20,6 +21,7 @@ interface AssetDetailProps {
   onUpdateGuid: (newGuid: string) => void;
   onAutoGuid: () => void;
   onRefreshThumbnail: (size: number) => void;
+  onUpdateAnimation: (assetPath: string, updatedData: Uint8Array) => void;
   loading: boolean;
 }
 
@@ -29,6 +31,7 @@ export function AssetDetail({
   onUpdateGuid,
   onAutoGuid,
   onRefreshThumbnail,
+  onUpdateAnimation,
   loading,
 }: AssetDetailProps) {
   const [editingPath, setEditingPath] = useState(asset?.assetPath ?? '');
@@ -179,6 +182,13 @@ export function AssetDetail({
               }}
             />
           </Stack>
+        )}
+
+        {asset.assetPath.toLowerCase().endsWith('.anim') && (
+          <AnimationEditor
+            asset={asset}
+            onSave={(data) => onUpdateAnimation(asset.assetPath, data)}
+          />
         )}
       </Stack>
     </Paper>
