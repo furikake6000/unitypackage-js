@@ -137,7 +137,10 @@ const updatedYaml = anim.exportToYaml();
 
 // UnityPackageのアセットデータを更新
 const updatedAssetData = new TextEncoder().encode(updatedYaml);
-// 注: UnityPackageのアセット更新APIは今後追加予定
+const updated = pkg.updateAssetData(asset.assetPath, updatedAssetData);
+if (!updated) {
+  throw new Error('アセット更新に失敗しました');
+}
 
 // パッケージをエクスポート
 const newPackageData = await pkg.export();
@@ -277,6 +280,7 @@ interface UnityAsset {
 | `UnityPackage.fromArrayBuffer` (static) | `(data: ArrayBuffer) => Promise<UnityPackage>`        | .unitypackageファイル（tar.gz）のバイナリデータを解析し、UnityPackageインスタンスを返します。                                            |
 | `export`                                | `() => Promise<ArrayBuffer>`                          | UnityPackageインスタンスから.unitypackageファイル（tar.gz）のバイナリデータを生成して返します。                                          |
 | `assets`                                | `ReadonlyMap<string, UnityAsset>`                     | パスをキーとしたアセット情報のマップ（読み取り専用）を取得します。                                                                       |
+| `updateAssetData`                       | `(assetPath: string, assetData: Uint8Array \| ArrayBuffer) => boolean` | 指定したアセットのデータを更新します。成功時はtrue、失敗時はfalseを返します。                                                            |
 | `renameAsset`                           | `(oldPath: string, newPath: string) => boolean`       | アセットのパスを変更します。GUIDは保持されます。成功時はtrue、失敗時はfalseを返します。                                                  |
 | `replaceAssetGuid`                      | `(assetPath: string, newGuid?: string) => boolean`    | アセットのGUIDを変更し、パッケージ内のすべての参照を更新します。newGuid省略時は自動生成されます。成功時はtrue、失敗時はfalseを返します。 |
 | `refreshThumbnail`                      | `(assetPath: string, size?: number) => Promise<void>` | 画像アセットのサムネイル（preview.png）を再生成します。size省略時は128。ブラウザ環境専用。                                               |

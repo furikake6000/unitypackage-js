@@ -175,6 +175,26 @@ export class UnityPackage {
   }
 
   /**
+   * 指定したアセットのデータを更新する
+   * @param assetPath 更新対象のアセットパス
+   * @param assetData 新しいアセットデータ
+   * @returns 更新が成功したかどうか
+   */
+  updateAssetData(
+    assetPath: string,
+    assetData: Uint8Array | ArrayBuffer,
+  ): boolean {
+    const asset = this._assets.get(assetPath);
+    if (!asset) {
+      return false;
+    }
+
+    asset.assetData =
+      assetData instanceof Uint8Array ? assetData : new Uint8Array(assetData);
+    return true;
+  }
+
+  /**
    * UnityPackage内のアセットパスを変更する
    * @param oldAssetPath 変更前のアセットパス
    * @param newAssetPath 変更後のアセットパス

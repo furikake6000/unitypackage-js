@@ -192,6 +192,43 @@ describe('UnityPackage.export', () => {
   });
 });
 
+describe('UnityPackage.updateAssetData', () => {
+  it('アセットデータを更新できる', async () => {
+    const pkg = await UnityPackage.fromArrayBuffer(minimalPackageData);
+    const assetPath = Array.from(pkg.assets.keys())[0];
+
+    const newData = new TextEncoder().encode('updated asset data');
+    const result = pkg.updateAssetData(assetPath, newData);
+
+    expect(result).toBe(true);
+    expect(pkg.assets.get(assetPath)!.assetData).toEqual(newData);
+  });
+
+  it('存在しないアセットの更新は失敗する', async () => {
+    const pkg = await UnityPackage.fromArrayBuffer(minimalPackageData);
+
+    const result = pkg.updateAssetData(
+      'Assets/NonExistent.asset',
+      new TextEncoder().encode('data'),
+    );
+
+    expect(result).toBe(false);
+  });
+
+  it('更新後にエクスポート・再インポートしてもデータが保持される', async () => {
+    const pkg = await UnityPackage.fromArrayBuffer(minimalPackageData);
+    const assetPath = Array.from(pkg.assets.keys())[0];
+
+    const newData = new TextEncoder().encode('roundtrip update');
+    pkg.updateAssetData(assetPath, newData);
+
+    const exported = await pkg.export();
+    const reimported = await UnityPackage.fromArrayBuffer(exported);
+
+    expect(reimported.assets.get(assetPath)!.assetData).toEqual(newData);
+  });
+});
+
 describe('ラウンドトリップテスト', () => {
   it('最小構成: import → export → import でデータが保持される', async () => {
     const original = await UnityPackage.fromArrayBuffer(minimalPackageData);
