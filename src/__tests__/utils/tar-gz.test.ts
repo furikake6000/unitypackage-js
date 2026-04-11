@@ -22,7 +22,9 @@ async function createSimpleTarGz(
 }
 
 // テスト用の最小限の gzip バッファを作成するヘルパー
-function createMinimalGzipBuffer(payloadBytes: number[] = [0x03, 0x00]): ArrayBuffer {
+function createMinimalGzipBuffer(
+  payloadBytes: number[] = [0x03, 0x00],
+): ArrayBuffer {
   // gzip ヘッダー: ID1, ID2, CM, FLG, MTIME(4バイト), XFL, OS
   const header = [0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff];
   const data = [...header, ...payloadBytes];
