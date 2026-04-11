@@ -29,7 +29,7 @@ export async function extractTarGz(
       entries.set(file.name, {
         name: file.name,
         data: file.data || new Uint8Array(0),
-        isDirectory: file.type === 'directory',
+        isDirectory: file.name.endsWith('/'),
       });
     }
 
